@@ -1,0 +1,12 @@
+data/raw/
+*.pt
+*.pth
+*.weights
+__pycache__/
+*.pyc
+.DS_Store
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/
+.env
