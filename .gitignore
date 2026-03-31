@@ -10,3 +10,6 @@ __pycache__/
 dist/
 build/
 .env
+data/processed/
+runs/
+yolov8n.pt
