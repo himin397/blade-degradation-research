@@ -260,9 +260,95 @@
 
 ## 現在の進捗
 
-- Phase 0 W01：完了（2026-03-31）
-  - リポジトリ作成・GitHub push完了
-  - docs/data_sources.md 作成完了
-  - data/data_dict.md テンプレ作成完了
-  - 実験ログテンプレ作成完了
-- Phase 0 W02：次のステップ
+最終更新: 2026-04-02
+
+- **Phase 0**：完了（2026-03-31）
+  - W01：リポジトリ作成・GitHub push・docs/data_sources.md・data/data_dict.md・実験ログテンプレ
+  - W02：OpenOA/OpenFAST概要把握・environment_setup.md・Python仮想環境構築手順記載
+
+- **Phase 1**：完了（2026-04-02）
+  - DTU画像データによるYOLOv8損傷検出（EXP-001ベースライン→EXP-002ピラミッド拡張）
+  - mAP@0.5: 0.3476 → **0.5805**（+67%）
+  - 部位別リスクスコア算出・可視化まで完了
+  - スパン方向マッピング確定・chord方向の限界を定量的に把握
+  - 成果物: phase1_summary.md / risk_scores.csv / region_risk_scores.png
+
+- **Phase 2**：完了（2026-04-02）
+  - 2017/2018データセットレベルの損傷分布比較（探索的分析）
+  - Mann-Whitney U検定（Root部位のみ有意: p=0.022、ただし実質的意味は限定的）
+  - 同一箇所対応付け不可という構造的限界を定量的に確認
+  - 成果物: phase2_summary.md / phase2_score_comparison.png / scores_by_year.json
+
+- **Phase 3**：完了（2026-04-02）
+  - Kaggle Wind Turbine SCADAデータ（トルコ、2018年、10分値）から疲労リスク代理指標を試作
+  - 指標: hrs_above_rated / mean_ti / hrs_high_ti / fatigue_risk_score（月次）
+  - 8月が最高リスク（0.482）。TIは全月0.03〜0.05の極低乱流環境
+  - 成果物: phase3_summary.md / phase3_fatigue_proxy.csv / fatigue_proxy_monthly.png
+
+- **Phase 4**：完了（2026-04-02）
+  - 画像リスクスコア（Phase 1/2）× SCADA疲労代理指標（Phase 3）統合パイプラインの「型」実装
+  - 合成データで動作確認（Pearson r=0.256、有意）
+  - 自社データへの差し替え手順を明記（fusion_pipeline.py）
+  - 成果物: phase4_summary.md / fusion_results.csv / fusion_results.png
+
+- **Phase 5**：完了（2026-04-02）
+  - IEC 61400-1 / Sutherland 1999参考の簡易解析荷重モデルによるDELプロキシ算出
+  - hrs_above_rated vs DEL: Pearson r=+0.808（強い正相関）
+  - このサイトではhrs_above_ratedが疲労を支配（TIの寄与は小さい：極低乱流環境のため）
+  - OpenFAST DLC 1.2実行仕様を設計（openfast_pipeline_spec.md）
+  - 成果物: phase5_summary.md / phase5_del_proxy.csv / phase5_load_analysis.png
+
+- **Phase 5b**：完了（2026-04-02）
+  - OpenFAST v3.5.1 + TurbSim: NREL 5MW, DLC 1.2, 8V×5TI=40ケース
+  - DEL算出（RootMyb1, m=10, Teq=600s）: 全40ケース成功
+  - 簡易モデル vs OpenFAST: Pearson r=0.978（高相関確認）
+  - Phase 4重み較正: **w_V=0.810, w_TI=0.190**（V支配型サイト）
+  - fusion_pipeline.py更新: 等重み0.5/0.5 → 較正済み0.81/0.19
+  - 成果物: del_matrix.csv / model_comparison.png / phase4_weights_calibrated.json
+
+- **マルチシード・標準Rainflow・長期DEL**：完了（2026-04-03）
+  - 240ケース（8V×5TI×6seeds）、ASTM E1049標準Rainflow導入
+  - 平均CV=8.9%（V≥8では安定）、簡易版との誤差平均42%（標準実装の必要性を確認）
+  - 長期DEL（Weibull/IEC Class II・TI=14%）：約9,200 kN-m
+  - 成果物: del_matrix_ms.csv / del_single_rainflow_comparison.csv / lifetime_del_stage2/3.csv
+
+- **Phase 6: DLC 1.3（ETM）**：完了（2026-04-03）
+  - 48ケース（8V×6seeds）、DLC 1.2比較
+  - DLC 1.3 / DLC 1.2(TI=14%) 比率: 低速域×4.2、高速域×1.4
+  - 成果物: del_comparison_dlc12_vs_dlc13.csv / del_comparison_dlc12_vs_dlc13.png
+
+- **Phase H（Penmanshiel SCADA）**：完了（2026-04-03）
+  - Zenodo Penmanshiel T01-T07, 2020年全年
+  - TI直接計測（中央値0.133〜0.144）、DEL年間平均5,500〜5,700 kN-m
+  - pipeline: phase3_scada/phase3_penmanshiel.py
+
+- **Phase J（台間パワーカーブ比較）**：完了（2026-04-03）
+  - T01-T06 fleet比較、Cp_max=0.45〜0.47、T05が最低(-3.5% AEP)
+  - pipeline: phase3_scada/penmanshiel_power_curve.py
+
+- **Phase K（縦断パワーカーブ 2016-2021）**：完了（2026-04-03）
+  - T01、Cp_max 2017→2020: 0.4275→0.4513（増加傾向 ≠ 劣化）
+  - pipeline: phase3_scada/penmanshiel_longitudinal.py
+
+- **Phase I（MM82 OpenFASTモデル）**：完了（2026-04-04）
+  - NREL 5MW → Senvion MM82 幾何スケーリング（λ_R=0.651, λ_H=0.674）
+  - 検証ケース: DEL比0.258（理論0.276, 誤差6.5%）
+  - 240ケース完了: DEL 215〜4,046 kN·m、CV平均6.1%
+  - W_V/W_TI MM82再較正: w_V=0.725, w_TI=0.275（R²=0.943）
+  - Penmanshiel DEL（MM82基準）: 年間平均1,497〜1,742 kN·m、ピーク2月
+
+- **Phase L（縦断DELトレンド）**：完了（2026-04-04）
+  - T01（2016-2021）: DEL 1,155〜1,507 kN·m
+  - DEL増加は風況年変動（V_mean/TI増加）が主因。Cp_max増加（劣化なし）と整合
+  - pipeline: phase3_scada/phase_L_longitudinal_del.py
+
+- **Phase M（DLC 2.1 終局荷重）**：完了（2026-04-04）
+  - グリッド喪失→緊急停止、36ケース（V=8〜18m/s × 6seeds）
+  - フォルト後ピーク < フォルト前（比率0.54〜0.87）→ 緊急ピッチの荷重低減有効
+  - V=12m/s でフォルト前ピーク最大（3,116 kN·m）
+
+- **Phase N（DLC 2.2 ピッチ固着）**：完了（2026-04-04）
+  - Blade 1 固着 × 36ケース。V=18m/sで DLC 2.1 比×2.09の荷重増大
+  - 定格以上（V>13m/s）で非対称荷重が急増。DLC 2.2 が支配ケースになりうる
+
+- **統合レポート**：v2.1（docs/integrated_research_report.md）

@@ -14,3 +14,6 @@ data/processed/
 runs/
 yolov8n.pt
 phase1_image_risk_score/experiments/field_notes_private.md
+
+# 大容量データ（Git管理対象外）
+data/penmanshiel/
