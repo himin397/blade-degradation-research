@@ -5,9 +5,11 @@ Phase 1 W06: 学習済みモデルの評価・可視化スクリプト
 実行タイミング: YOLOv8学習完了後
 
 使い方:
-    python phase1_image_risk_score/src/evaluate.py
+    python phase1_image_risk_score/src/evaluate.py                        # EXP-001（デフォルト）
+    python phase1_image_risk_score/src/evaluate.py --exp pyramid_yolov8n  # EXP-002
 """
 
+import argparse
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -15,11 +17,19 @@ import matplotlib
 matplotlib.use("Agg")  # 画面表示なし（ファイル保存のみ）
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-EXPERIMENT_DIR = REPO_ROOT / "runs" / "detect" / "phase1_image_risk_score" / "experiments" / "baseline_yolov8n"
 REPORT_DIR = REPO_ROOT / "phase1_image_risk_score" / "reports"
 REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
 CLASS_NAMES = ["VG;MT", "LE;ER", "LR;DA", "LE;CR", "SF;PO"]
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--exp", default="baseline_yolov8n",
+        help="実験フォルダ名（runs/detect/phase1_image_risk_score/experiments/ 以下）"
+    )
+    return parser.parse_args()
 
 
 def plot_training_curves(results_csv: Path):
@@ -69,14 +79,14 @@ def plot_training_curves(results_csv: Path):
     return df
 
 
-def summarize_results(df: pd.DataFrame):
+def summarize_results(df: pd.DataFrame, exp_name: str = "baseline_yolov8n"):
     """最終エポックの結果をサマリーとして表示・保存する。"""
     last = df.iloc[-1]
     best_map50_epoch = df["metrics/mAP50(B)"].idxmax() + 1
     best_map50 = df["metrics/mAP50(B)"].max()
 
     summary = f"""
-# ベースライン学習結果サマリー
+# 学習結果サマリー: {exp_name}
 
 ## 学習設定
 - モデル: YOLOv8n（nanoサイズ）
@@ -117,9 +127,17 @@ def summarize_results(df: pd.DataFrame):
 
 
 if __name__ == "__main__":
+    args = parse_args()
+    _base_exp_dir = REPO_ROOT / "runs" / "detect" / "phase1_image_risk_score" / "experiments"
+    _nested_exp_dir = REPO_ROOT / "runs" / "detect" / "runs" / "detect" / "phase1_image_risk_score" / "experiments"
+    if (_base_exp_dir / args.exp / "results.csv").exists():
+        EXPERIMENT_DIR = _base_exp_dir / args.exp
+    else:
+        EXPERIMENT_DIR = _nested_exp_dir / args.exp
     results_csv = EXPERIMENT_DIR / "results.csv"
     if not results_csv.exists():
-        print("まだ学習結果がありません。学習完了後に実行してください。")
+        print(f"まだ学習結果がありません: {results_csv}")
+        print("学習完了後に実行してください。")
     else:
         df = plot_training_curves(results_csv)
-        summarize_results(df)
+        summarize_results(df, exp_name=args.exp)

@@ -49,10 +49,10 @@ def load_yolo_predictions(pred_dir: Path, image_list: list) -> dict:
                 if not line:
                     continue
                 parts = line.split()
-                if len(parts) >= 6:
+                if len(parts) >= 5:
                     class_id = int(parts[0])
-                    conf = float(parts[5]) if len(parts) > 5 else 1.0
                     cx, cy, w, h = map(float, parts[1:5])
+                    conf = float(parts[5]) if len(parts) > 5 else 1.0
                     det = Detection(
                         class_id=class_id,
                         class_name=CLASS_NAMES.get(class_id, "unknown"),

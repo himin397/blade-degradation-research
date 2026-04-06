@@ -33,14 +33,13 @@ CLASS_WEIGHTS = {
     "SF;PO": 1.0,
 }
 
-# 部位重み（docs/blade_region_definition.md 参照）
+# 部位重み（スパン方向のみ・Phase 2改訂版）
+# chord方向（LE/Body/TE）は撮影角度の非標準化により信頼性が低いため削除
+# 確認済み根拠：LE;ERアノテーション229件のcx分布が0.004〜0.992に均一分布（2026-04-02）
 REGION_WEIGHTS = {
-    "T-LE":   3.0,  # 翼端前縁：最高リスク
-    "M-LE":   2.0,  # 中間前縁
-    "R-LE":   1.5,  # 翼根前縁
-    "T-Body": 1.5,  # 翼端胴体
-    "M-Body": 1.0,  # 中間胴体
-    "R-Body": 1.0,  # 翼根胴体
+    "Tip":  3.0,  # 翼端：最高リスク（himinさんの現場知識・文献と整合）
+    "Mid":  2.0,  # 中間
+    "Root": 1.0,  # 翼根
 }
 
 
@@ -61,14 +60,19 @@ def assign_chord_region(cx: float) -> str:
     """
     バウンディングボックスのx座標からコード方向の部位を推定。
 
-    前提: ドローンがブレードの前縁側から撮影している場合、
-    画像の左側（cx < 0.25）が前縁（LE）に対応する。
-    ※この前提はDTUデータの撮影方向を確認後に調整が必要。
+    【重要：Phase 1 検証済み制約（2026-04-02）】
+    DTUデータセットではブレードが各パッチ内で斜め方向（左上→右下）に走るため、
+    前縁（LE）の位置はパッチ内で一定ではなくrowによって変化する。
+    アノテーション可視化（DJI_0615_0_2.JPG等）により、LE;ER損傷は
+    cx=0.26, 0.43, 0.55, 0.75, 0.88 等、パッチ全域に分布することが確認された。
+
+    → 固定cx閾値によるLE/Body/TE分類は信頼性が低い（Phase 2以降で幾何補正が必要）。
+    　 現状は暫定実装として維持するが、分類結果の解釈に注意が必要。
 
     Args:
         cx: 正規化済み中心x座標（0〜1）
     Returns:
-        "LE" or "Body" or "TE"
+        "LE" or "Body" or "TE"（暫定・信頼性低）
     """
     if cx < 0.25:
         return "LE"
@@ -82,9 +86,13 @@ def assign_span_region(image_filename: str, total_images_in_sequence: int = None
     """
     ファイル名・パッチ番号からスパン方向の部位を推定（アプローチA）。
 
-    パッチ名の行インデックスが大きいほど画像の下部（翼端側）と仮定。
-    ※DJI_XXXX_row_col.JPG の row が大きい → ブレード先端側の可能性。
-    ※この仮定はDTU撮影方向の確認後に調整が必要。
+    DTU撮影方向の確認結果（2026-04-02）:
+    - ブレードは画像内で左上（先端）→右下（根元）方向に対角線状に走る
+    - row=0（画像上部）= Tip（先端）：空のみ見える、地面なし
+    - row=2（画像下部）= Root（根元）：地面・草原が見える、黒パディングあり
+    - 確認方法: DJI_0615_0_2.JPG vs DJI_0615_2_2.JPG の目視比較、
+               LE;ERアノテーションがrow=0に集中していることとhiminさんの
+               現場知識（T-LE侵食が最も激しい）との整合性確認
 
     Args:
         image_filename: パッチファイル名（例: DJI_0058_1_3.JPG）
@@ -97,11 +105,11 @@ def assign_span_region(image_filename: str, total_images_in_sequence: int = None
         try:
             row = int(parts[2])
             if row == 0:
-                return "Root"
+                return "Tip"
             elif row == 1:
                 return "Mid"
             else:
-                return "Tip"
+                return "Root"
         except ValueError:
             pass
     return "Mid"  # 不明な場合はMidとする
@@ -111,28 +119,24 @@ def assign_region(detection: Detection, image_filename: str) -> str:
     """
     1つの検出結果に部位を割り当てる。
 
+    Phase 2改訂（2026-04-02）：
+    chord方向（LE/Body/TE）の信頼性が低いことが確認されたため、
+    スパン方向（Tip/Mid/Root）のみを返す。
+
     Returns:
-        部位ID（例: "T-LE", "M-Body" など）
+        部位ID（"Tip", "Mid", "Root"）
     """
-    chord = assign_chord_region(detection.cx)
-    span = assign_span_region(image_filename)
-
-    # TE（後縁）は今回の重み設定に含まれていないためBodyとして扱う
-    if chord == "TE":
-        chord = "Body"
-
-    region = f"{span[0]}-{chord}"  # 例: "T-LE", "M-Body"
-    return region
+    return assign_span_region(image_filename)
 
 
 def calc_risk_score(detections: list[Detection]) -> dict:
     """
-    検出結果のリストから部位別リスクスコアを算出する。
+    検出結果のリストからスパン部位別リスクスコアを算出する。
 
     スコア = Σ（信頼度 × 面積比率 × クラス重み × 部位重み）
 
     Returns:
-        部位IDをキー、スコアを値とするdict
+        {"Tip": float, "Mid": float, "Root": float}
     """
     scores = {region: 0.0 for region in REGION_WEIGHTS}
 
@@ -141,7 +145,7 @@ def calc_risk_score(detections: list[Detection]) -> dict:
         if region not in REGION_WEIGHTS:
             continue
 
-        area_ratio = det.w * det.h  # 正規化済み面積
+        area_ratio = det.w * det.h
         class_weight = CLASS_WEIGHTS.get(det.class_name, 1.0)
         region_weight = REGION_WEIGHTS[region]
 
