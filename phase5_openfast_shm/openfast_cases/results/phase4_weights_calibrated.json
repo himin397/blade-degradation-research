@@ -1,0 +1,9 @@
+{
+  "w_V": 0.8103736230411251,
+  "w_TI": 0.18962637695887485,
+  "source": "OpenFAST DLC1.2 NREL 5MW",
+  "method": "LinearRegression(positive=True) on DEL_norm ~ V_norm + TI_norm",
+  "R2": 0.926,
+  "Pearson_r_proxy_vs_openfast": 0.9783,
+  "note": "このサイト(低TI環境)ではV重みが支配的。IEC-A/Bサイトでは再較正が必要。"
+}
