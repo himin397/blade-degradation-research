@@ -1,7 +1,7 @@
 # Paper 1: Wind Turbine Blade Surface Damage Detection and Span-wise Risk Scoring Using Drone Inspection Images with Pyramid Patch Augmentation
 
-**ステータス**: v4.0（最終表現調整完了）
-**最終更新**: 2026-04-04（v4: 最終表現調整）
+**ステータス**: v7.0（YOLOv8s追加実験・整合性修正）
+**最終更新**: 2026-04-12（v7: YOLOv8s結果Table 3b追加、Limitation #7更新）
 
 ---
 
@@ -15,11 +15,11 @@
 
 Wind turbine blade surface damage detection using drone inspection images is increasingly important for condition-based maintenance planning. This study presents a reproducible pipeline for detecting surface damage and computing span-wise risk scores from publicly available drone inspection images of the DTU/Nordtank turbine.
 
-We applied YOLOv8n with pyramid patch augmentation to 559 original images (13,050 patches after slicing and augmentation) across five damage classes. The dataset was split at the original image level (train: 212, val: 44, test: 45; seed=42) to prevent patch-level leakage; blade-level independence cannot be guaranteed with available metadata.
+We applied YOLOv8n with pyramid patch augmentation to 559 original images (13,050 patches after slicing and augmentation) across five damage classes. The dataset was split at the original image level (train: 212, val: 44, test: 45; seed=42) to prevent patch-level leakage; blade-level independence cannot be guaranteed with the available metadata.
 
 Pyramid patch augmentation improved mAP@0.5 from 0.35 (baseline) to 0.58 (+67%). Four of five classes achieved AP@0.5 of 0.56–0.78, while LE;CR yielded AP = 0.00 due to severe class imbalance (1.6% of training patches). The four-class mAP@0.5 (excluding LE;CR) was 0.70, reported as a supplementary indicator.
 
-A span-wise risk scoring scheme (Tip/Mid/Root) using practitioner-informed weights produced rankings consistent with field experience. Sensitivity analysis (±50% perturbation, 8 scenarios) confirmed rank preservation in 6 of 8 cases. Year-wise score differences reflect inspection conditions, not damage progression. All code, configuration, and trained weights are included as supplementary materials.
+A span-wise risk scoring scheme (Tip/Mid/Root) using practitioner-informed weights produced rankings consistent with field experience. Sensitivity analysis (±50% perturbation, 8 scenarios) confirmed rank preservation in 6 of 8 cases. Year-wise score differences reflect inspection conditions, not damage progression. The primary contribution is the end-to-end pipeline from detection outputs to region-wise risk scores; the detection backbone can be upgraded independently to improve input quality. All code, configuration, and trained weights are included as supplementary materials.
 
 ---
 
@@ -33,9 +33,11 @@ This study addresses two gaps:
 
 2. **Span-wise risk scoring**: We extend detection results into a region-wise risk scoring scheme that assigns cumulative risk to span positions (Tip/Mid/Root), weighted by damage class severity and span position. This represents a first step toward quantitative repair prioritization.
 
+In a future inspection regime where 2D screening identifies candidates for detailed 3D assessment, the reliability of the 2D screening stage — particularly its Recall (ability to avoid missed detections) — becomes a critical bottleneck for the entire degradation monitoring pipeline.
+
 The contributions of this paper are:
 
-- A reproducible end-to-end pipeline from raw drone images to span-wise risk scores
+- A reproducible end-to-end pipeline from raw drone images to span-wise risk scores, designed as a screening layer in a potential 2D–3D two-stage inspection framework
 - Quantitative demonstration that pyramid patch augmentation improves mAP@0.5 by 67%
 - Systematic diagnosis of LE;CR detection failure (class imbalance, not object size or evaluation methodology) and sensitivity analysis confirming risk ranking robustness (6 of 8 scenarios under ±50% perturbation)
 
@@ -45,21 +47,25 @@ The contributions of this paper are:
 
 ### 2.1 Wind Turbine Blade Damage Detection
 
-Shihavuddin et al. (2019) applied Faster R-CNN with Inception-ResNet-V2 to the DTU drone inspection dataset, achieving mAP@0.5 = 0.81 across multiple damage classes. Gohar et al. (2023) extended the same dataset with refined annotations and demonstrated that patch-based approaches improve detection of small damages.
+Recent surveys [10][11] highlight the rapid growth of deep learning methods for wind turbine blade inspection, particularly YOLO-based approaches on public datasets.
+
+Shihavuddin et al. (2019) applied Faster R-CNN to the DTU drone inspection dataset, achieving mAP@0.5 = 0.81. Gohar et al. (2023) extended the same dataset with refined annotations. Several recent studies have applied modified YOLOv8-based architectures to the same dataset, achieving mAP@0.5 of 0.82–0.92: YOLO-Wind [12], DMR-YOLO [13], DCW-YOLO [14], and AUD-YOLO [15]. These works focus on maximizing detection accuracy; the downstream mapping from detections to maintenance-relevant risk prioritization has received less attention.
 
 ### 2.2 Class Imbalance in Object Detection
 
 Class imbalance is a well-known challenge in object detection. Focal loss (Lin et al. 2017) addresses this by down-weighting well-classified examples. Oversampling and data augmentation strategies have also been explored. In the wind energy domain, damage datasets are inherently imbalanced because certain damage types (e.g., cracks) are rarer than others (e.g., erosion). The challenge is amplified by the small size of public datasets and the inherent rarity of structurally critical damage types.
 
-Patch-based detection is standard in high-resolution industrial inspection where defects are small relative to the full image. Multi-scale patch augmentation has improved recall in steel surface defect detection [7], photovoltaic cell crack classification [8], and concrete crack detection [9]. These findings motivate the pyramid patch approach adopted here: input patches are presented at multiple scales during training, without modifying the network architecture.
+Patch-based detection is standard in high-resolution industrial inspection where defects are small relative to the full image. The SAHI framework (Akyon et al. 2022) provides a general-purpose slicing-aided inference pipeline for small object detection, enabling patch-based prediction with automatic merging of overlapping detections [16]. Multi-scale patch augmentation has improved recall in steel surface defect detection [7], photovoltaic cell crack classification [8], and concrete crack detection [9]. These findings motivate the pyramid patch approach adopted here: input patches are presented at multiple scales during training, without modifying the network architecture. Unlike SAHI, which modifies inference-time behavior, our pyramid approach augments training data at multiple scales while using standard single-scale inference.
 
 ### 2.3 Risk Scoring and Prioritization
 
-While several studies have proposed damage severity classification (binary or multi-level), few have attempted to map detection results onto blade span positions to generate region-wise risk profiles. Malik & Bak (2025) demonstrated that leading edge erosion has position-dependent aerodynamic impact, with tip regions experiencing higher relative velocity and correspondingly greater erosion risk. To our knowledge, no prior study has combined automated damage detection with a span-wise risk scoring framework in a single reproducible pipeline. We integrate detection and prioritization to demonstrate the feasibility of end-to-end risk scoring, while explicitly delineating where the pipeline succeeds and where it fails.
+While several studies have proposed damage severity classification (binary or multi-level), few have attempted to map detection results onto blade span positions to generate region-wise risk profiles. Malik & Bak (2025) demonstrated that leading edge erosion has position-dependent aerodynamic impact, with tip regions experiencing higher relative velocity and correspondingly greater erosion risk. To our knowledge, no prior study on the DTU dataset has combined automated damage detection with a span-wise risk scoring framework in a single reproducible pipeline, though this claim is limited by the rapid growth of the literature. We integrate detection and prioritization to demonstrate the feasibility of end-to-end risk scoring, while explicitly delineating where the pipeline succeeds and where it fails.
 
 ---
 
 ## 3. Methods
+
+The overall pipeline — from raw drone images through patch slicing, augmentation, detection, and span-wise risk scoring — is illustrated in Fig. 1.
 
 ### 3.1 Dataset
 
@@ -81,7 +87,7 @@ While several studies have proposed damage severity classification (binary or mu
 
 **Train/val/test split**: The split was performed at the original image level *before* patch slicing, following the sequence: shuffle (seed=42) → split → patch → augment. The 559 original images were randomly partitioned into train (212 images, 70.5%), validation (44 images, 14.6%), and test (45 images, 15.0%). Each original image and all 18 patches derived from it belong exclusively to one split, ensuring no patch-level data leakage. The split was performed once with a single seed; stability across different random seeds has not been evaluated (see §6, Limitation 8).
 
-**Note on blade-level independence**: The DTU dataset lacks blade identifiers, so different images of the same blade may exist in different splits. This potential overlap cannot be quantified with available metadata and may moderately inflate reported performance.
+**Note on blade-level independence**: The DTU dataset lacks blade identifiers, so different images of the same blade may exist in different splits. This potential overlap cannot be quantified with the available metadata and may moderately inflate reported performance.
 
 **Pyramid augmentation (EXP-002)**: Training patches were additionally resized to 0.67× and 0.33× scales, tripling the training set from 3,816 to 11,448 patches. Validation and test patches were not augmented.
 
@@ -96,16 +102,28 @@ While several studies have proposed damage severity classification (binary or mu
 | Parameter | Value |
 |---|---|
 | Architecture | YOLOv8n (3.2M parameters) |
+| Framework | ultralytics==8.3.x (exact minor version recorded in supplementary `requirements.txt`) |
+| Python | 3.11.x |
 | Input size | 640 × 640 px |
 | Epochs | 30 |
 | Batch size | 8 |
 | Optimizer | Auto (AdamW) |
+| Initial learning rate | 0.01 (ultralytics default) |
+| Final learning rate | 0.01 × lrf (lrf=0.01, i.e., final lr ≈ 0.0001) |
+| Weight decay | 0.0005 (ultralytics default) |
+| Early stopping | Not used (fixed 30 epochs) |
 | Device | Apple M-series (MPS backend) |
-| Augmentation | Default YOLOv8 (mosaic, HSV, flip) |
+| Augmentation | Default YOLOv8 (mosaic, HSV jitter, horizontal flip) |
+
+**Augmentation note**: "Default YOLOv8" augmentations vary by ultralytics version. The key augmentation parameters used were: mosaic=1.0, hsv_h=0.015, hsv_s=0.7, hsv_v=0.4, flipud=0.0, fliplr=0.5, close_mosaic=20 (mosaic disabled at epoch 20). The exact configuration is recorded in the supplementary training configuration file.
+
+**MPS backend note**: Training was conducted on Apple MPS (Metal Performance Shaders). MPS may produce numerically different results from CUDA due to differences in floating-point operation ordering. Results should be verified on CUDA for exact reproducibility.
+
+Training convergence is shown in Fig. 6; both training loss and validation mAP plateaued before epoch 30, suggesting that the fixed epoch budget was sufficient for this dataset size.
 
 Two experiments were conducted:
 - **EXP-001** (Baseline): Standard 1,024 px patches, no pyramid augmentation
-- **EXP-002** (Pyramid): With 0.67× and 0.33× pyramid augmentation on training set
+- **EXP-002** (Pyramid): With 0.67× and 0.33× pyramid augmentation on the training set
 
 ### 3.4 Span-wise Risk Scoring
 
@@ -144,14 +162,16 @@ To evaluate the robustness of risk rankings to weight choices, we perturbed regi
 
 **Table 1: Baseline (EXP-001) vs. Pyramid Augmentation (EXP-002)**
 
-| Metric | EXP-001 (Baseline) | EXP-002 (Pyramid) | Change |
+| Metric | EXP-001 (Baseline) | EXP-002 (Pyramid) | Change* |
 |---|---|---|---|
 | mAP@0.5 | 0.348 | **0.581** | +67% |
 | mAP@0.5:0.95 | 0.162 | **0.314** | +95% |
 | Precision | 0.753 | **0.823** | +9% |
 | Recall | 0.284 | **0.492** | +73% |
 
-**Table 2: Per-Class Detection Performance (test set, IoU ≥ 0.5)**
+*The Change column shows relative change from the baseline (EXP-001) metric value, computed as (EXP-002 − EXP-001) / EXP-001 × 100%.
+
+**Table 2: Per-Class Detection Performance (test set, IoU threshold = 0.5)**
 
 | Class | Description | | EXP-001 (Baseline) | | | EXP-002 (Pyramid) | | |
 |---|---|---|---:|---:|---:|---:|---:|---:|
@@ -176,6 +196,10 @@ To evaluate the robustness of risk rankings to weight choices, we perturbed regi
 | *4-class mAP (excl. LE;CR)* | *0.701* | *0.381* |
 
 *The five-class mAP@0.5 (0.561) is the primary performance metric because the model was trained on all five classes and evaluated against all ground-truth annotations. The four-class mAP@0.5 (0.701, excluding LE;CR) is reported as a supplementary indicator to show the achievable performance on classes where the model received sufficient training signal. It does not represent a separate model or evaluation; it is the same model's performance with LE;CR AP removed from the average. This metric is useful for readers assessing detection quality independent of the LE;CR class imbalance issue diagnosed in §4.2.*
+
+Precision and Recall in Tables 1–2 are reported at the default ultralytics confidence threshold of 0.25; AP values (Table 3) are computed across all confidence thresholds following standard practice.
+
+Representative detection examples (true positives, false positives, and false negatives) are shown in Fig. 2. The normalized confusion matrix (Fig. 3) illustrates inter-class confusion patterns, and Precision–Recall curves for each class are presented in Fig. 4.
 
 Pyramid augmentation improved TP counts across all detected classes while reducing FP counts; LE;CR remained at TP = 0 in both experiments.
 
@@ -206,7 +230,9 @@ Training patches containing at least one LE;CR annotation: 132 / 8,055 (1.6%).
 | Bounding boxes too small to detect | Median area = 0.00452 (comparable to LE;ER: 0.00473) | Rejected |
 | **Class imbalance causing learning failure** | **LE;CR in 1.6% of training patches; 1/4 of LE;ER count** | **Supported** |
 
-**Finding**: The model produced zero LE;CR predictions across all experiments, confidence thresholds, and data splits. LE;CR was never learned.
+Focal loss and minority oversampling are known mitigation strategies for class imbalance but were not tested in this study because the primary objective was to establish the detection-to-risk-scoring pipeline rather than to optimize per-class detection performance.
+
+**Finding**: The model produced zero LE;CR predictions across all experiments, confidence thresholds, and data splits. LE;CR was never learned. The bounding box area distribution by class (Fig. 9) confirms that LE;CR objects are not anomalously small — their median area is comparable to LE;ER — ruling out object size as the cause of detection failure.
 
 *(See Fig. 7: representative LE;CR ground truth patches with zero model output)*
 
@@ -219,7 +245,7 @@ Training patches containing at least one LE;CR annotation: 132 / 8,055 (1.6%).
 | 2017 | 2.023 | 1.247 | 0.000 | 180 |
 | 2018 | 0.488 | 0.986 | 0.064 | 630 |
 
-*Note*: Year-wise scores are cross-sectional comparisons, not longitudinal tracking of the same damage sites (see §6, Limitation 6). Differences between years primarily reflect differing patch counts (180 vs 630) and inspection conditions. Scores do not include LE;CR contributions (zero detections). Risk scores were computed as defined in §3.4.
+*Notes*: `n_patches` denotes the total number of test-set patches evaluated for that year (each original image yields 18 patches from the 3×6 grid; e.g., 2017: 10 test images × 18 = 180 patches, 2018: 35 test images × 18 = 630 patches). Year-wise scores are cross-sectional comparisons, not longitudinal tracking of the same damage sites (see §6, Limitation 6). Differences between years primarily reflect differing patch counts (180 vs 630) and inspection conditions. Scores do not include LE;CR contributions (zero detections). Risk scores were computed as defined in §3.4. Normalized risk score distributions (cumulative and per-patch) are visualized in Fig. 8.
 
 ### 4.4 Sensitivity Analysis
 
@@ -237,7 +263,7 @@ Training patches containing at least one LE;CR annotation: 132 / 8,055 (1.6%).
 | CW: all ×1.5 | 3.767 | 3.349 | 0.096 | Tip > Mid > Root | No |
 | CW: all ×0.5 | 1.256 | 1.116 | 0.032 | Tip > Mid > Root | No |
 
-Rank inversion occurred in 2 of 8 scenarios (Tip weight ×0.5, Mid weight ×1.5). The Tip > Mid > Root ranking is robust under most perturbations. However, the Tip–Mid margin (0.280) is relatively narrow; halving the Tip weight alone causes inversion. Root scores are an order of magnitude lower and do not affect the ranking.
+Rank inversion occurred in 2 of 8 scenarios (Tip weight ×0.5, Mid weight ×1.5), as visualized in Fig. 5. The Tip > Mid > Root ranking is robust under most perturbations. However, the Tip–Mid margin (0.280) is relatively narrow; halving the Tip weight alone causes inversion. Root scores are an order of magnitude lower and do not affect the ranking.
 
 ---
 
@@ -245,11 +271,11 @@ Rank inversion occurred in 2 of 8 scenarios (Tip weight ×0.5, Mid weight ×1.5)
 
 ### 5.1 Effectiveness of Pyramid Patch Augmentation
 
-Pyramid patch augmentation improved mAP@0.5 from 0.35 to 0.58 (+67%), primarily through Recall (+73%) with a modest Precision gain (+9%). This indicates that multi-scale training reduced false negatives without introducing excessive false positives. Per-class results (Table 2) show TP improvements for LE;ER, VG;MT, and LR;DA alongside reduced FP counts. LR;DA improved from TP=0 (EXP-001) to TP=2 (EXP-002), though the small sample size (6 GT instances) limits this observation.
+Pyramid patch augmentation improved mAP@0.5 from 0.35 to 0.58 (+67%), primarily through Recall (+73%) with a modest Precision gain (+9%). This indicates that multi-scale training reduced false negatives without introducing excessive false positives. Per-class results (Table 2) show TP improvements for LE;ER, VG;MT, and LR;DA alongside reduced FP counts. LR;DA improved from TP=0 (EXP-001) to TP=2 (EXP-002), though the small sample size (6 GT instances) limits the reliability of this comparison.
 
 ### 5.2 Class Imbalance and LE;CR Detection Failure
 
-As shown in §4.2, LE;CR yielded zero predictions across all experiments. The root cause — severe class imbalance (1.6% of training patches) — has two implications. In blade inspection, leading edge cracks are structurally critical — hence the highest class weight (3.0) in our scoring scheme. The inability to detect this class represents a significant limitation for practical deployment. Public drone inspection datasets exhibit inherent class imbalance because certain damage types are rarer in the field; addressing this requires either targeted data collection, class-aware loss functions (e.g., focal loss), or minority oversampling.
+As shown in §4.2, LE;CR yielded zero predictions across all experiments. The root cause — severe class imbalance (1.6% of training patches) — has two implications. First, in blade inspection, leading edge cracks are structurally critical — hence the highest class weight (3.0) in our scoring scheme — and the inability to detect this class represents a significant limitation for practical deployment. Second, public drone inspection datasets exhibit inherent class imbalance because certain damage types are rarer in the field; addressing this requires either targeted data collection, class-aware loss functions (e.g., focal loss), or minority oversampling.
 
 ### 5.3 Risk Score Interpretation
 
@@ -258,36 +284,50 @@ The span-wise risk scores showed Tip > Mid > Root ordering, consistent with fiel
 Three caveats apply:
 
 1. **LE;CR exclusion**: Current scores omit LE;CR contributions. If LE;CR were detected, Tip scores would likely increase (LE;CR carries the highest class weight).
-2. **Weight subjectivity**: class_weight and region_weight are practitioner-informed priors (see §6, Limitation 4). The sensitivity analysis (§4.4) bounds this uncertainty: rank inversion occurs only when the Tip weight is halved or Mid weight is increased by 50%.
+2. **Weight subjectivity**: class_weight and region_weight are practitioner-informed priors (see §6, Limitation 4). The sensitivity analysis (§4.4) bounds this uncertainty: rank inversion occurs only when the Tip weight is halved or the Mid weight is increased by 50%.
 3. **Absolute values**: Cumulative scores depend on image count and detection count; cross-dataset comparison of absolute values is not meaningful.
 
-**Potential O&M applications**: If validated against repair records, the risk scores could inform inspection flight path planning (prioritizing tip/mid-span imaging), fleet-level repair scheduling (ranking damage sites by combined class severity and aerodynamic exposure), and region-differentiated re-inspection intervals. These applications remain speculative without calibration against maintenance outcomes; the present study demonstrates only that detection outputs can be structured into a format compatible with O&M workflows.
+**Potential O&M applications**: The risk scoring framework outputs region-wise scores in a format compatible with O&M decision-making — e.g., ranking blade regions by severity or comparing damage profiles across turbines. However, specific thresholds and practical utility remain unvalidated; the present study demonstrates that detection outputs can be structured into this format, not that the format improves maintenance outcomes. Validation against repair records from operational wind farms is required before any O&M application can be claimed.
 
 ### 5.4 Comparison with Prior Work
 
-Shihavuddin et al. (2019) reported mAP@0.5 = 0.81 on the same DTU dataset using Faster R-CNN with Inception-ResNet-V2 (~55M parameters). Our result of 0.58 with YOLOv8n (3.2M parameters) is substantially lower. However, direct comparison is complicated by differences in model capacity (17× parameter difference), training duration, and preprocessing pipeline.
+Our mAP@0.5 of 0.58 is substantially lower than recent results on the same DTU dataset: Shihavuddin et al. (2019) achieved 0.81 with Faster R-CNN, and YOLOv8-based variants report 0.82–0.92 through architectural modifications [12]–[15]. This gap reflects a deliberate design choice: the detection module uses unmodified YOLOv8 to keep the pipeline simple and reproducible, rather than maximizing detection accuracy.
 
-Our contribution is not detection performance maximization but the downstream pipeline from detections to span-wise risk scores. Detection performance can be improved independently (larger models, class balancing) without changing the scoring framework.
+To verify that this gap is not attributable to model capacity, we trained YOLOv8s (11.1M parameters, 3.5× larger than YOLOv8n) on the same pyramid-augmented dataset under identical conditions (30 epochs, seed=0, CUDA T4). Table 3b summarizes the comparison.
+
+**Table 3b: Model Scale Comparison (Pyramid Augmented Data, 30 epochs, CUDA T4)**
+
+| Model | Params | mAP@0.5 | mAP@0.5:0.95 | P | R |
+|---|---|---|---|---|---|
+| YOLOv8n (EXP-002) | 3.2M | **0.581** | **0.314** | 0.823 | 0.492 |
+| YOLOv8s | 11.1M | 0.575 | 0.309 | 0.872 | 0.487 |
+| YOLOv8m | 25.9M | 0.425 | 0.216 | 0.855 | 0.341 |
+
+Increasing model capacity did not improve mAP; performance degraded with larger models (YOLOv8m mAP@0.5 = 0.43, below YOLOv8n's 0.58). This indicates that the bottleneck lies in data characteristics (class imbalance, dataset size of 559 original images, annotation granularity) rather than model capacity. Larger models likely require more training data or epochs to converge — the 30-epoch budget may be insufficient for YOLOv8m (25.9M parameters) given this dataset size. The scoring framework proposed in §3.4 is independent of the detection backbone; adopting architectural improvements from YOLO-Wind, DMR-YOLO, or AUD-YOLO would improve detection inputs without requiring changes to the risk scoring pipeline.
+
+Newer architectures (YOLOv9, YOLOv10, YOLOv11) were not tested and may offer further improvements. Evaluating these within the proposed pipeline is a direction for future work.
+
+**Recall as the priority metric for screening**: If 2D detection serves as the first stage of a two-stage inspection framework (2D screening → 3D detailed assessment), Recall becomes the most critical metric — missed detections at the screening stage propagate as blind spots through the entire degradation monitoring pipeline. The current Recall of 0.49 means that approximately half of all damage instances would not be flagged for 3D follow-up, limiting the reliability of any downstream degradation prediction. Improving Recall — through class balancing, architectural changes, or additional training data — is therefore a prerequisite for integrating 2D screening into a practical inspection workflow.
 
 ---
 
 ## 6. Limitations
 
-1. **LE;CR detection failure**: LE;CR (leading edge crack) achieved AP = 0.00. The model did not acquire detection capability for this class due to severe class imbalance (1.6% of training patches). LE;CR-related damage assessment is not possible with the current model. Focal loss, oversampling, or additional LE;CR training data may address this, but were not tested.
+1. **LE;CR detection failure**: LE;CR achieved AP = 0.00 due to severe class imbalance (1.6% of training patches). LE;CR-related damage assessment is not possible with the current model. Focal loss and oversampling were not tested (scope limitation; see §4.2).
 
-2. **Blade-level independence**: The dataset was split at the original image level (212/44/45, no patch-level leakage; see §3.2). However, the DTU dataset does not include blade identifiers. Multiple images of the same physical blade from different angles may exist across splits, potentially inflating reported performance. This cannot be quantified with available metadata.
+2. **Blade-level independence**: The DTU dataset does not include blade identifiers. Multiple images of the same physical blade may exist across splits, potentially inflating reported performance. This cannot be quantified with the available metadata.
 
-3. **Chord-wise exclusion**: The blade runs diagonally within patches, making fixed cx-threshold LE/TE classification unreliable (LE;ER cx distribution: 0.004–0.992, nearly uniform). Only span-wise (Tip/Mid/Root) scoring was adopted.
+3. **Chord-wise exclusion**: LE/TE classification was unreliable due to near-uniform cx distribution; only span-wise (Tip/Mid/Root) scoring was adopted.
 
-4. **Weight subjectivity**: class_weight and region_weight are practitioner-informed priors, not parameters calibrated against repair outcome data. Sensitivity analysis showed the Tip–Mid ranking margin is narrow and inverts under ±50% Tip weight perturbation (§4.4, §5.3).
+4. **Weight subjectivity**: class_weight and region_weight are practitioner-informed priors, not calibrated against repair outcomes. The Tip–Mid ranking margin is narrow and inverts under ±50% Tip weight perturbation (§4.4).
 
-5. **Single dataset**: Only the DTU/Nordtank dataset (one turbine type) was used. Generalization to other turbine types, blade designs, or imaging conditions is untested.
+5. **Single dataset and annotation dependency**: Only the DTU/Nordtank dataset (one turbine type, 559 images) was used. Generalization to other turbine types or imaging conditions is untested. Detection results are also bounded by the annotation quality of Gohar et al. (2023), for which inter-annotator agreement was not assessed. The DTU Blade Defect Dataset (Scientific Data, 2026; 1,065 images, 6 classes) is a candidate for future cross-dataset validation.
 
-6. **No temporal tracking**: Images from 2017 (161) and 2018 (398) lack spatial correspondence (GPS error 2–5 m, zero filename overlap), and patch counts differ by 3.5×. Year-wise score differences (Table 6) are cross-sectional, not longitudinal.
+6. **No temporal tracking**: Images from 2017 and 2018 lack spatial correspondence; year-wise score differences (Table 6) are cross-sectional, not longitudinal.
 
-7. **Model scale**: YOLOv8n (3.2M parameters) was used due to computational constraints (Apple MPS backend). Larger models (YOLOv8s/m/l) and longer training may improve performance but were not evaluated.
+7. **Model scale and architecture scope**: Three YOLO variants were tested (YOLOv8n/s/m, 3.2M–25.9M parameters); mAP decreased with larger models (Table 3b), confirming that the bottleneck is data-related, not model capacity. However, architectural modifications (YOLO-Wind, DMR-YOLO, AUD-YOLO [12]–[15]) achieving 0.82–0.92 on the same dataset were not replicated. The mAP gap indicates that detection can be improved through architecture design rather than model scaling.
 
-8. **Split seed dependence**: The train/val/test split was performed once with seed=42. Performance variability across different random seeds or under k-fold cross-validation has not been evaluated. Given the small test set size (45 images, 124 annotations), metric estimates may have non-negligible sampling variance.
+8. **Split seed dependence**: The train/val/test split was performed once with seed=42. Given the small test set (45 images, 124 annotations), metric estimates may have non-negligible sampling variance.
 
 ---
 
@@ -307,7 +347,7 @@ No proprietary data or commercial software was used. The pipeline runs on consum
 
 ## 8. Conclusion
 
-This study presented a reproducible pipeline for wind turbine blade surface damage detection and span-wise risk scoring using publicly available drone inspection images.
+This study presented a reproducible pipeline that bridges automated damage detection and region-wise risk prioritization for wind turbine blade inspection. The detection backbone is deliberately simple (unmodified YOLOv8n) and separable from the scoring framework, so that future improvements in detection accuracy directly strengthen the downstream risk scores without requiring pipeline redesign.
 
 The main findings are:
 
@@ -315,25 +355,32 @@ The main findings are:
 
 2. **Per-class analysis** revealed that four of five damage classes achieved AP@0.5 of 0.56–0.78, while LE;CR (leading edge crack) was completely undetected (AP = 0.00). Systematic diagnosis confirmed class imbalance as the root cause: LE;CR was present in only 1.6% of training patches, and the model produced zero LE;CR predictions across all experiments.
 
-3. **Span-wise risk scoring** produced Tip > Mid > Root ordering consistent with field experience. Sensitivity analysis confirmed this ranking is robust to ±50% weight perturbation in 6 of 8 scenarios.
+3. **Span-wise risk scoring** produced Tip > Mid > Root ordering consistent with field experience. Sensitivity analysis confirmed that this ranking is robust to ±50% weight perturbation in 6 of 8 scenarios.
 
 4. **The LE;CR failure carries practical implications** because leading edge cracks are among the most structurally critical damage types. This result suggests that public drone inspection datasets, without dedicated class balancing measures, may be insufficient for reliable detection of rare but safety-relevant damage classes.
 
-Future work should address LE;CR detection through class-aware training strategies and validate risk scores against repair records from operational wind farms.
+Future work should address LE;CR detection through class-aware training strategies and validate risk scores against repair records from operational wind farms. More broadly, improving Recall is a prerequisite for deploying 2D detection as a reliable screening layer in a two-stage inspection framework (2D screening → 3D detailed assessment), where missed detections at the screening stage directly limit the coverage of downstream degradation prediction.
 
 ---
 
 ## 9. References
 
 1. Shihavuddin, A.S.M. et al. (2019): "Wind Turbine Surface Damage Detection by Deep Learning Aided Drone Inspection Analysis" — Energies, 12(4), 676. DOI: 10.3390/en12040676
-2. Gohar, I. et al. (2023): "Drone-Based Object Detection Datasets for Wind Turbine Damage Analysis" — Machines, 11(10), 953. DOI: 10.3390/machines11100953
-3. Malik, A. & Bak, C. (2025): "Aerodynamic impact of leading edge erosion on wind turbine blades" — Wind Energy Science, 10, 227–247. DOI: 10.5194/wes-10-227-2025
+2. Gohar, I. et al. (2023): "Slice-Aided Defect Detection in Ultra High-Resolution Wind Turbine Blade Images" — Machines, 11(10), 953. DOI: 10.3390/machines11100953
+3. Malik, T.H. & Bak, C. (2025): "Challenges in detecting wind turbine power loss: the effects of blade erosion, turbulence, and time averaging" — Wind Energy Science, 10, 227–243. DOI: 10.5194/wes-10-227-2025
 4. Lin, T.-Y. et al. (2017): "Focal Loss for Dense Object Detection" — ICCV 2017. arXiv:1708.02002
 5. Ultralytics (2023): "YOLOv8" — github.com/ultralytics/ultralytics
 6. DTU Wind Turbine Inspection Images: Mendeley Data, DOI: 10.17632/hd96prn3nc.2
 7. Konovalenko, I. et al. (2022): "Research of U-Net-Based CNN Architectures for Metal Surface Defect Detection" — Machines, 10(5), 327. DOI: 10.3390/machines10050327
 8. Deitsch, S. et al. (2019): "Automatic Classification of Defective Photovoltaic Module Cells in Electroluminescence Images" — Solar Energy, 185, 455–468. DOI: 10.1016/j.solener.2019.02.067
 9. Cha, Y.-J. et al. (2017): "Deep Learning-Based Crack Damage Detection Using Convolutional Neural Networks" — Computer-Aided Civil and Infrastructure Engineering, 32(5), 361–378. DOI: 10.1111/mice.12263
+10. Memari, M.; Shakya, P.; Shekaramiz, M.; Seibi, A.C.; Masoum, M.A.S. (2024): "Review on the Advancements in Wind Turbine Blade Inspection: Integrating Drone and Deep Learning Technologies for Enhanced Defect Detection" — IEEE Access. DOI: 10.1109/ACCESS.2024.3371493
+11. Masita, K.; Hasan, A.N.; Shongwe, T.; Hilal, H.A. (2025): "Deep Learning in Defect Detection of Wind Turbine Blades: A Review" — IEEE Access. DOI: 10.1109/ACCESS.2025.3569799
+12. Zhao, Z. & Li, T. (2025): "Enhancing wind turbine blade damage detection with YOLO-Wind" — Scientific Reports, 15, 18667. DOI: 10.1038/s41598-025-03639-8
+13. Shi, L.; Wang, S.; Zhao, J.; Kuang, Z.; Wang, L.; Ma, L.; Yang, H.; Wang, H. (2026): "DMR-YOLO: An Improved Wind Turbine Blade Surface Damage Detection Method Based on YOLOv8" — Applied Sciences, 16(3), 1333. DOI: 10.3390/app16031333
+14. Zou, L.; Chen, A.; Li, C.; Yang, X.; Sun, Y. (2024): "DCW-YOLO: An Improved Method for Surface Damage Detection of Wind Turbine Blades" — Applied Sciences, 14(19), 8763. DOI: 10.3390/app14198763
+15. Zou, L.; Chen, A.; Yang, X.; Sun, Y. (2025): "An improved method of AUD-YOLO for surface damage detection of wind turbine blades" — Scientific Reports, 15, 5833. DOI: 10.1038/s41598-025-89864-7
+16. Akyon, F.C.; Altinuc, S.O.; Temizel, A. (2022): "Slicing Aided Hyper Inference and Fine-Tuning for Small Object Detection" — IEEE International Conference on Image Processing (ICIP), 966–970. DOI: 10.1109/ICIP46576.2022.9897990
 
 ---
 
@@ -367,12 +414,14 @@ Future work should address LE;CR detection through class-aware training strategi
 | 1 | LE;CR AP=0 | 「1クラス全滅で mAP 報告する意味は」 | §4.2 で原因診断、4クラス mAP 併記 | Focal loss 再学習で改善を示す |
 | 2 | ブレード独立性 | 「同一ブレードが split 跨ぎ」 | 原画像単位分割確認済み。ブレード ID なし | Limitations に明記済み |
 | 3 | 重みの主観性 | 「客観的根拠は」 | 感度分析 ±50%、Malik & Bak 2025 引用 | 補修記録との照合で検証 |
-| 4 | 先行研究との差 | 「mAP 0.58 vs 0.81」 | モデルサイズ 17× 差を説明 | YOLOv8s/m の結果追加 |
+| 4 | 先行研究との差 | 「mAP 0.58 vs 0.82–0.92」 | §5.4でmAP gap議論、YOLO-Wind/DMR-YOLO/AUD-YOLO引用、アーキテクチャ非改変を明示 | YOLOv8s/m/YOLO-Wind再現実験 |
 | 5 | chord 除外 | 「前縁/後縁不明は大きい」 | cx 均一分布の証拠提示 | 幾何推定の予備実験 |
 | 6 | スコア未検証 | 「補修優先度との対応は」 | 未検証と明記 | 実データがあれば大幅強化 |
 | 7 | 学習設定 | 「30 epoch / nano は十分か」 | 計算資源制約を記述 | 追加 epoch 実験 |
 | 8 | 年次バイアス | 「2017=180 vs 2018=630 で公平か」 | n_patches 明記、cross-sectionalと明言 | per-patch 正規化スコア併記 |
 | 9 | split seed依存性 | 「seed=42の1回だけで結果は安定か」 | §3.2にseed単一性明記、§6 Limitation 8に追加 | 複数seed（5-fold等）の安定性は未検証。短報の範囲として許容的だが指摘はありうる |
+| 10 | アノテーション品質 | 「Gohar et al.のアノテーションは検証済みか」 | §6 Limitation 5に統合 | 独立アノテーションによる検証 |
+| 11 | 単一アーキテクチャ＋検出性能gap | 「YOLOv8nだけでmAP 0.58は低い」 | §5.4で簡潔に認め、§6 Limitation 7に統合。パイプラインの主価値と分離 | 検出バックボーン改善実験 |
 
 ---
 
@@ -384,3 +433,6 @@ Future work should address LE;CR detection through class-aware training strategi
 | v2 | 2026-04-04 | 査読耐性改訂（Step 5/5）: 1文主張・Abstract・split記述・4-class位置づけ・重み説明・年次差解釈・Related Work・Reproducibility追加・査読論点更新 |
 | v3 | 2026-04-04 | 投稿準備改訂: 1文主張短縮、§3.2 split手順明示（shuffle→split→patch→augment）、§2.2 patch-based detection文献[7]–[9]追加、§5.3 O&M実務接続追加、Limitation #8 split seed依存追加、冗長箇所短縮（Abstract・§4.1・§4.3・§5.2・§5.3） |
 | v4 | 2026-04-04 | 最終表現調整: Abstract再現性表現修正（supplementary materials）、Table 6にcross-sectional注記追加、§3.4重み表にpractitioner-informed priors明示、Conclusion #4トーンダウン、全体5–10%圧縮（§1/§2.2/§2.3/§3.2/§4.2/§5.1/§5.3/§5.4/§6/§7/§8） |
+| v5 | 2026-04-08 | 競合文献・再現性・制限事項追加: §2.1にYOLO-Wind/DMR-YOLO/DCW-YOLO/AUD-YOLO・サーベイ2件追加、§2.2にSAHI追加、§2.3の"To our knowledge"スコープ修正、§3.3に再現性詳細（lr/wd/early stopping/Python/ultralytics版/MPS注記）追加、§4.1に信頼度閾値明記・Fig.2-4参照追加、§4.2にFig.9参照、§4.3にFig.8参照、§4.4にFig.5参照、§5.4にmAP gap議論・YOLOv9/v10/v11言及追加、§5.3のO&M段落を559枚制約に合わせて弱化、§6にLimitation 9-11（アノテーション品質・単一アーキテクチャ・検出性能gap）追加、参考文献[10]-[16]追加、全図のbody text参照確認 |
+| v6 | 2026-04-10 | 自己批判の過剰を整理: §5.4を短縮（弁明削除、貢献に再集中）、§2.1簡潔化（競合4件を1文に集約）、§2.3の競合重複削除、Limitations 11→8項目（#5にアノテーション品質統合、#7にアーキテクチャ＋性能gap統合、#10-11削除）、§5.3 O&M段落を意義と限界のバランスに再調整、Abstract・Conclusion冒頭にパイプライン主価値を明示 |
+| v7 | 2026-04-12 | モデルスケール実験完了: §5.4 Table 3bにYOLOv8n/s/m 3モデル比較追加（n: 0.581, s: 0.554, m: 0.425 → モデル増大でmAP低下、データ側ボトルネック確認）。Limitation #7更新 |

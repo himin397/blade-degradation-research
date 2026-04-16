@@ -1,0 +1,53 @@
+name: Literature Monitor
+
+on:
+  schedule:
+    # Every 1st of the month at 00:00 UTC (09:00 JST)
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Number of days to look back'
+        required: false
+        default: '35'
+
+jobs:
+  check-literature:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run literature monitor
+        run: |
+          cd tools
+          python literature_monitor.py --days ${{ github.event.inputs.days || '35' }}
+
+      - name: Check for new report
+        id: check
+        run: |
+          if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push report
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tools/literature_reports/ tools/monitor_state.json
+          git commit -m "literature monitor: $(date +%Y-%m) report"
+          git push

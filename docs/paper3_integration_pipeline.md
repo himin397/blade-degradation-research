@@ -1,7 +1,7 @@
 # Paper 3: 風車ブレード劣化予測に向けた画像・SCADA・空力シミュレーション統合パイプラインの設計とギャップ分析
 
-**ステータス**: v3.0（最終調整）
-**最終更新**: 2026-04-04
+**ステータス**: v5.0（§2圧縮・文体統一）
+**最終更新**: 2026-04-10
 
 ---
 
@@ -24,25 +24,30 @@
    1.1 Background and Motivation
    1.2 Problem: The Integration Gap
    1.3 Objective and Scope
-2. Component Summary
-   2.1 Image-Based Damage Detection and Risk Scoring (Paper 1)
-   2.2 Fatigue Load Estimation Framework (Paper 2)
-   2.3 Physical Calibration via OpenFAST
-3. Integration Pipeline Design
-   3.1 Architecture Overview
-   3.2 I/O Specification
-   3.3 Fusion Logic and Weight Design
-   3.4 Implementation Status
-4. I/O Connection Test (Synthetic Data)
-5. Gap Analysis
-   5.1 What Has Been Achieved
-   5.2 What Remains Unresolved
-   5.3 Data Requirements for True Integration
-6. Research Roadmap
-   6.1 Short-Term: Same-Turbine Data Acquisition
-   6.2 Medium-Term: Master's Research Design
-   6.3 Long-Term: Toward Predictive Degradation Modeling
-7. Conclusion
+2. Related Work
+   2.1 Single-Modality Approaches and Their Limits
+   2.2 Multi-Modal Fusion and Digital Twin
+   2.3 Condition-Based Maintenance Frameworks
+   2.4 Summary: Research Gap
+3. Component Summary
+   3.1 Image-Based Damage Detection and Risk Scoring (Paper 1)
+   3.2 Fatigue Load Estimation Framework (Paper 2)
+   3.3 Physical Calibration via OpenFAST
+4. Integration Pipeline Design
+   4.1 Architecture Overview
+   4.2 I/O Specification
+   4.3 Fusion Logic and Weight Design
+   4.4 Implementation Status
+5. I/O Connection Test (Synthetic Data)
+6. Gap Analysis
+   6.1 What Has Been Achieved
+   6.2 What Remains Unresolved
+   6.3 Data Requirements for True Integration
+7. Research Roadmap
+   7.1 Short-Term: Same-Turbine Data Acquisition
+   7.2 Medium-Term: Master's Research Design
+   7.3 Long-Term: Toward Predictive Degradation Modeling
+8. Conclusion
 References
 ```
 
@@ -50,9 +55,9 @@ References
 
 ## Abstract
 
-風車ブレードの劣化予測には、表面損傷の画像情報、運転荷重履歴、および物理モデルによる較正を統合するアプローチが必要とされている [9][10]。本研究では、公開データを用いた先行研究（画像損傷検出: Paper 1、疲労荷重推定基盤: Paper 2）の成果を部品として、3モダリティを接続する統合パイプラインのアーキテクチャとI/O仕様を設計した。
+風車ブレードの劣化予測には、表面損傷の画像情報、運転荷重履歴、および物理モデルによる較正を統合するアプローチが必要とされている [9][11][12]。しかし、これら複数モダリティの情報を具体的なI/O仕様で接続する設計論は十分に確立されていない [17][19]。本研究では、公開データを用いた先行研究（画像損傷検出: Paper 1、疲労荷重推定基盤: Paper 2）の成果を部品として、3モダリティを接続する統合パイプラインのアーキテクチャとI/O仕様を設計した。
 
-パイプラインは、画像由来のスパン方向リスクスコア、SCADA由来の月次DEL推定値、およびOpenFASTによる重み較正係数を入力とし、タービン別・月別の統合リスクスコアを出力する。合成データによるI/O接続テストでデータフローの整合性を確認したが、これはパイプライン動作の確認であり、予測性能の検証ではない。
+パイプラインは、画像由来のスパン方向リスクスコア、SCADA由来の月次疲労等価荷重（DEL: Damage Equivalent Load）推定値、およびOpenFASTによる重み較正係数を入力とし、タービン別・月別の統合リスクスコアを出力する。合成データによるI/O接続テストでデータフローの整合性を確認したが、これはパイプライン動作の確認であり、予測性能の検証ではない。
 
 画像データ（DTU/Nordtank）とSCADAデータ（Penmanshiel/MM82）は異なるタービン・異なるサイトであり、同一タービン上での統合検証は未達である。本研究の主たる価値は、統合パイプラインの設計図、真の統合に必要なデータ要件の明確化、および修士・博士研究への段階的ロードマップの提示にある。
 
@@ -62,7 +67,7 @@ References
 
 ### 1.1 Background and Motivation
 
-風車ブレードは20年以上の運用期間を通じて、エロージョン、亀裂、雷撃損傷等の表面劣化と、繰り返し疲労荷重による構造的劣化を同時に受ける [10]。現行のO&M実務では、定期的なドローン点検やロープアクセス点検による画像評価と、SCADAデータに基づく運転状態監視が独立に行われている [9]。しかし、表面損傷の視覚的評価と運転荷重履歴を統合して劣化進行リスクを定量的に評価する枠組みは、まだ確立されていない。
+風車ブレードは20年以上の運用期間を通じて、エロージョン、亀裂、雷撃損傷等の表面劣化と、繰り返し疲労荷重による構造的劣化を同時に受ける [10][11]。現行のO&M実務では、定期的なドローン点検やロープアクセス点検による画像評価と、SCADAデータに基づく運転状態監視が独立に行われている [9][13]。しかし、表面損傷の視覚的評価と運転荷重履歴を統合して劣化進行リスクを定量的に評価する枠組みは、まだ確立されていない [11][12]。
 
 ### 1.2 Problem: The Integration Gap
 
@@ -78,72 +83,140 @@ References
 
 ---
 
-## 2. Component Summary
+## 2. Related Work
 
-### 2.1 Image-Based Damage Detection and Risk Scoring (Paper 1)
+本節では、統合パイプライン設計の背景として、各モダリティの研究動向と統合の現状を整理し、本研究が対処するギャップを特定する。
+
+### 2.1 Single-Modality Approaches and Their Limits
+
+**SCADA**: Tautz-Weinert & Watson (2017) [7] のレビュー以降、SCADAベースの状態監視は急速に発展している。Pandit et al. (2023) [9] は正常挙動モデリング・異常検知・残余寿命推定の3段階を整理し、Stetco et al. (2019) [13] は機械学習手法の体系的比較を行った。Dao et al. (2018) [14] はSCADA信号の組み合わせによるコンポーネント故障診断を実証した。しかし、SCADAデータ単独では故障の根本原因（ブレード損傷 vs 機械的摩耗 vs 電気系統）の弁別が困難であることが共通の限界である [9][13]。
+
+**画像**: Shihavuddin et al. (2019) [3] 以降、ドローン画像×深層学習によるブレード損傷検出は急速に進歩し、Gohar et al. (2025) [15] が最新動向を整理している。Liu et al. (2024) [16] はアテンション機構による軽量検出ネットワークを提案した。しかし、検出結果を運転データと統合してリスク評価に接続する枠組みは提示されていない。
+
+**包括的レビュー**: Tchakoua et al. (2014) [10]、Memari et al. (2024) [11]、García Márquez & Peco Chacón (2020) [12] はいずれも、単一モダリティの限界と複数情報源の統合の必要性を示唆しているが、画像・SCADA・物理モデルを具体的なI/O仕様で接続する設計論は提示していない。
+
+### 2.2 Multi-Modal Fusion and Digital Twin
+
+マルチモーダル融合研究は主にドライブトレインに集中している。Yang et al. (2013) [17] はSCADAの複数パラメータ結合による異常検出を実証し、Castellani et al. (2024) [18] はSCADAとCMS振動データの融合でギアボックス故障を検出した。Maldonado-Correa et al. (2020) [19] はデータ融合手法を整理しつつ、公開データの不足を障壁として指摘した。いずれもブレード劣化に対する画像・SCADA・物理モデルの3モダリティ融合は検討していない。
+
+デジタルツインの領域では、Kandemir et al. (2024) [20] が物理駆動型・データ駆動型・ハイブリッド型を整理し、Branlard et al. (2020) [21] がOpenFASTベースのリアルタイム荷重推定を提示した。Hu et al. (2025) [22] は画像由来の損傷情報をデジタルツインに反映するアプローチを示したが、SCADAとの統合は対象外である。本パイプラインは完全なデジタルツインではなく、その構成要素のI/O仕様と接続設計を整理する予備段階に位置する。
+
+### 2.3 Condition-Based Maintenance Frameworks
+
+CBM/RBIフレームワークは、リスク評価の入力として「状態情報」を必要とする。Nielsen & Sørensen (2011) [23] はベイズ更新による検査計画を、Florian & Sørensen (2017) [24] は疲労損傷と点検コストのトレードオフを、Yeter et al. (2020) [25] はリスク基準保全の枠組みをそれぞれ提案した。しかし、状態情報を複数モダリティから統合する方法論は十分に確立されていない。本パイプラインの統合リスクスコアは、将来的にこれらのCBM/RBI意思決定フレームワークへの入力として機能する可能性がある。
+
+### 2.4 Summary: Research Gap
+
+以上から、以下の3つのギャップが明らかになる:
+
+1. **モダリティ間の分断**: 画像検出、SCADA監視、物理シミュレーションは独立に発展しており、具体的なI/O仕様で接続する設計論が不足している
+2. **ブレード特化の融合研究の不在**: マルチモーダル融合研究はドライブトレインに集中しており、ブレード劣化に対する3モダリティ融合は未探索である
+3. **設計から検証への橋渡し**: デジタルツインやCBMの枠組みは提示されているが、公開データを用いた段階的構築方法論と、真の統合検証に必要なデータ要件の明確化が欠けている
+
+本研究は、これらのギャップに対し、統合パイプラインのアーキテクチャ設計・I/O仕様定義・残存課題の体系的整理を通じて、予備的な貢献を行う。
+
+---
+
+## 3. Component Summary
+
+### 3.1 Image-Based Damage Detection and Risk Scoring (Paper 1)
 
 Paper 1では、DTU公開画像559枚にYOLOv8n＋ピラミッドパッチ拡張を適用し、5損傷クラスの検出（mAP@0.5 = 0.58）とスパン方向リスクスコア（Tip/Mid/Root）を算出した。既知の制約として、LE;CR検出不能（AP = 0.00）、chord方向除外、重みはpractitioner-informed priorsである（Paper 1 §3.4）。
 
 **出力粒度の注記**: DTU画像は単一サイト（Nordtank）の横断的データであり、turbine_id × monthの時系列粒度を持たない。Table 1の出力スキーマは実機での定期点検データ蓄積後に実現される将来仕様であり、現状は「1時点分」に相当する。
 
-### 2.2 Fatigue Load Estimation Framework (Paper 2)
+### 3.2 Fatigue Load Estimation Framework (Paper 2)
 
 Paper 2では、NREL 5MWからSenvion MM82への幾何スケーリングとPenmanshiel公開SCADAのIEC準拠TI直接計測を組み合わせ、月次・年次DEL推定基盤を構築した。統合パイプラインへの出力は月次DEL推定値（kN·m）と疲労リスクスコア（0–1正規化）であり、タービンID × 月の粒度を持つ。既知の制約として、MM82翼型プロキシは相対比較のみ有効であり、DLC 1.2単独での推定である（詳細はPaper 2 §5.4）。
 
-### 2.3 Physical Calibration via OpenFAST
+### 3.3 Physical Calibration via OpenFAST
 
-Paper 2のDELマトリクス（8V × 5TI）とw_V/w_TI較正（MM82: 0.725/0.275, R² = 0.943）は、Module B内部での風況→DEL変換に物理的根拠を付与する。統合層のα/β較正は補修記録が必要であり未達（§3.3で詳述）。
+Paper 2のDELマトリクス（8V × 5TI）とw_V/w_TI較正（MM82: 0.725/0.275, R² = 0.943）は、Module B内部での風況→DEL変換に物理的根拠を付与する。統合層のα/β較正は補修記録が必要であり未達（§4.3で詳述）。
 
 ---
 
-## 3. Integration Pipeline Design
+## 4. Integration Pipeline Design
 
-### 3.1 Architecture Overview
+### 4.1 Architecture Overview
+
+> **注記**: 以下のアーキテクチャ図は設計仕様を表す。同一タービンのデータを用いた統合検証は未実施である。
+> 正式版図: `docs/fig_paper3_architecture.png`
 
 ```
-┌─────────────────────────────────────────────────────┐
-│ Module A: Image Risk Scoring (Paper 1 output)       │
-│   Input:  Drone images → YOLOv8n detection          │
-│   Output: [turbine_id, month, tip_score, mid_score, │
-│            root_score, image_risk_composite]         │
-└────────────────────┬────────────────────────────────┘
-                     │
-                     │ merge on [turbine_id, month]
-                     │
-┌────────────────────▼────────────────────────────────┐
-│ Module B: SCADA Fatigue Estimation (Paper 2 output) │
-│   Input:  10-min SCADA → DEL matrix interpolation   │
-│   Output: [turbine_id, month, DEL_est_kNm,          │
-│            fatigue_risk_score]                       │
-└────────────────────┬────────────────────────────────┘
-                     │
-                     │ weighted fusion
-                     │
-┌────────────────────▼────────────────────────────────┐
-│ Module C: Integration & Risk Assessment             │
-│   Fusion: α × image_risk + β × fatigue_risk         │
-│   Output: [turbine_id, month, integrated_risk,      │
-│            ranking, priority_flag]                   │
-└─────────────────────────────────────────────────────┘
-                     │
-                     ▼
-         Physical Calibration Layer (Paper 2)
-         w_V / w_TI → fatigue_risk の内部較正
-         α / β → 統合重みの将来較正（要: 補修記録）
+DATA SOURCES                    PIPELINE MODULES                         OUTPUT
+─────────────                   ────────────────                         ──────
+
+                        ┌──────────────────────────────────────┐
+  Drone inspection  ──▶ │  Module A: Image Risk Scoring        │
+  images (per turbine,  │  ● YOLOv8n detection → 5 classes     │
+  per inspection date)  │  ● Span-wise scoring (Tip/Mid/Root) │
+                        │  ● image_risk_composite output       │
+                        │  [STATUS: Implemented — Paper 1]     │
+                        └──────────────┬───────────────────────┘
+                                       │
+                                       │  merge on [turbine_id, month]
+                                       │  ※ Requires same-turbine data
+                                       │    (INNER JOIN; see §4.2 notes)
+                                       │
+                        ┌──────────────▼───────────────────────┐
+  10-min SCADA      ──▶ │  Module B: SCADA Fatigue Estimation  │
+  (wind speed, power,   │  ● DEL matrix interpolation (8V×5TI)│
+  TI, timestamps)       │  ● w_V/w_TI calibration (OpenFAST)  │
+                        │  ● Monthly DEL + fatigue_risk_score  │
+                        │  [STATUS: Implemented — Paper 2]     │
+                        └──────────────┬───────────────────────┘
+                                       │
+                                       │  weighted fusion
+                                       │  α × image_risk + β × fatigue_risk
+                                       │
+                        ┌──────────────▼───────────────────────┐
+  Maintenance records ─▶│  Module C: Integration & Risk        │
+  (for future α/β       │  ● Linear fusion (α=β=0.5, default) │
+  calibration)          │  ● integrated_risk_norm (0–1)        │
+                        │  [STATUS: I/O spec verified — this   │
+                        │   paper; synthetic data only]        │
+                        └──────────────┬───────────────────────┘
+                                       │
+                                       ▼
+                          Physical Calibration Layer
+                          ● w_V/w_TI: Paper 2で較正済み
+                          ● α/β: 未較正（要: 補修記録）
+                          [STATUS: w_V/w_TI calibrated;
+                           α/β NOT YET calibrated]
 ```
 
-### 3.2 I/O Specification
+**Table 5: Current State vs Target State**
+
+| Component | Current State (2026-04) | Target State (with same-turbine data) | Gap |
+|---|---|---|---|
+| **Module A** | YOLOv8n trained on DTU/Nordtank images; cross-sectional scores only (1 time point) | Same-turbine multi-temporal scores (turbine_id × month) | Same-turbine inspection images needed |
+| **Module B** | DEL matrix for MM82 proxy; Penmanshiel monthly DEL estimated | DEL estimation for the same turbine as Module A | Same-turbine SCADA needed |
+| **Module C** | I/O schema defined; synthetic data pipeline test passed | Weighted fusion with calibrated α/β on real data | Maintenance records needed for α/β calibration |
+| **Merge point** | Not executed with real data (different turbines in Modules A and B) | Inner join on [turbine_id, month] with matched data | **Critical**: same-turbine data acquisition |
+| **Calibration** | w_V/w_TI calibrated (Paper 2); α/β at equal-weight defaults | α/β calibrated via maintenance outcome regression | Maintenance records + sufficient sample size |
+
+### 4.1.1 Design Rationale: Why a Linear Modular Pipeline?
+
+本パイプラインは、Module A → B → C の線形モジュール構成と決定レベル融合（decision-level fusion）を採用している。この設計選択の根拠を以下に述べる。
+
+代替案として、(1) 早期融合（early fusion: 画像特徴量とSCADA特徴量を連結して単一モデルに入力）、(2) エンドツーエンド深層学習（画像とSCADAを同時に入力するマルチモーダルネットワーク）が考えられる。しかし、本研究では以下の理由からモジュール型の線形パイプラインを選択した。第一に、**O&M実務者にとっての解釈可能性**: 各モジュールの中間出力（画像リスクスコア、疲労リスクスコア）が個別に解釈可能であることは、風車技術者による結果の検証と信頼性判断に不可欠である。第二に、**段階的開発のためのモジュール性**: 画像データのみが利用可能な場合はModule A単独で、SCADAデータのみの場合はModule B単独で動作する縮退モード（degraded mode）が可能である。第三に、**公開データの制約への適応**: 現状では画像とSCADAが異なるタービンであり、各モジュールを独立に開発・検証してからI/O仕様で接続する方が、段階的な研究進展に適している。将来、同一タービンの大規模データが利用可能になった段階で、特徴量レベル融合やエンドツーエンド手法との性能比較が研究課題となる [17][19]。
+
+### 4.2 I/O Specification
 
 **Table 1: Module A Output Schema**
 
 | Column | Type | Source | Description |
 |---|---|---|---|
 | turbine_id | str | Inspection record | タービン識別子 |
-| month | int | Inspection date | 月（1–12） |
+| month | int | Inspection date | 月（1–12）†1 |
 | tip_score | float | Paper 1 §3.4 | Tip領域リスクスコア |
 | mid_score | float | Paper 1 §3.4 | Mid領域リスクスコア |
 | root_score | float | Paper 1 §3.4 | Root領域リスクスコア |
-| image_risk_composite | float | 加重和 | (tip×3 + mid×2 + root×1) / 6 |
+| image_risk_composite | float | 加重和 | (tip×3 + mid×2 + root×1) / 6 †2 |
+
+> †1 **将来仕様**: 現状のPaper 1はDTU横断的画像データから単一時点のスコアのみを生成する。`month`カラムによる月次時系列は、同一タービンに対する定期点検データの蓄積後に実現される将来仕様である。
+>
+> †2 **重み根拠**: Tip:Mid:Root = 3:2:1 の重みはpractitioner-informed priors（Paper 1 §3.4）に基づく。エロージョンの進行速度がTip側で大きいという実務的知見を反映しているが、データ駆動の較正は未実施である。
 
 **Table 2: Module B Output Schema**
 
@@ -152,7 +225,9 @@ Paper 2のDELマトリクス（8V × 5TI）とw_V/w_TI較正（MM82: 0.725/0.275
 | turbine_id | str | SCADA record | タービン識別子 |
 | month | int | SCADA timestamp | 月（1–12） |
 | DEL_est_kNm | float | Paper 2 §3.7 | 月次DEL推定値（kN·m） |
-| fatigue_risk_score | float | 0–1正規化 | DELの全タービン横断正規化 |
+| fatigue_risk_score | float | 0–1正規化 | DELの全タービン横断正規化 †3 |
+
+> †3 **正規化方法**: `fatigue_risk_score` はmin-max正規化を採用する（全タービン・全月の DEL_est_kNm の最小値を0、最大値を1にスケーリング）。この正規化は同一サイト内のタービン間相対比較を前提としており、異なるサイト間での比較にはサイト固有のスケーリングファクターが必要となる。パーセンタイル正規化やZスコア正規化は将来の代替案として検討対象である。
 
 **Table 3: Module C Output Schema**
 
@@ -163,7 +238,9 @@ Paper 2のDELマトリクス（8V × 5TI）とw_V/w_TI較正（MM82: 0.725/0.275
 | integrated_risk | float | α × image_risk + β × fatigue_risk |
 | integrated_risk_norm | float | 0–1正規化済み統合リスク |
 
-### 3.3 Fusion Logic and Weight Design
+**マージ仕様**: Module AとModule Bの結合はinner joinを使用する（結合キー: `[turbine_id, month]`）。inner joinの選択により、画像データまたはSCADAデータの一方が欠損している月は出力から除外される。これは、統合リスクスコアが両モダリティの情報を反映することを保証するための設計判断である。画像データのみ、またはSCADAデータのみが利用可能な月に対しては、Module A単独スコアまたはModule B単独スコアを参考値として出力する縮退モード（degraded mode）を将来的に実装予定である。欠損月のimputationは現時点では行わない（欠損パターンが実データで把握されるまでimputation戦略の選択は保留する）。
+
+### 4.3 Fusion Logic and Weight Design
 
 統合リスクスコアは以下の線形結合で算出する:
 
@@ -189,7 +266,7 @@ integrated_risk = α × image_risk_composite + β × fatigue_risk_score
 
 w_V/w_TIは同一物理量（風況パラメータ）間の相対重要度であり、OpenFASTシミュレーション結果から回帰的に較正できた。一方、α/βは異種情報（画像 vs 荷重）間の相対重要度であり、較正には補修記録との照合が必要となる。この非対称性が、統合パイプラインの主要な未解決課題である。
 
-### 3.4 Implementation Status
+### 4.4 Implementation Status
 
 | Component | Status | Script | Notes |
 |---|---|---|---|
@@ -201,33 +278,38 @@ w_V/w_TIは同一物理量（風況パラメータ）間の相対重要度であ
 
 ---
 
-## 4. I/O Connection Test (Synthetic Data)
+## 5. I/O Connection Test (Synthetic Data)
 
-同一タービンのデータが存在しないため、合成データによるI/O接続テストを実施した。Module Aに5タービン × 12ヶ月のランダム生成リスクスコア（seed=42）、Module BにPaper 2の疲労推定ワークフローを模した合成DEL系列（月次変動＋タービン間ノイズ）、Module Cに等重み（α = β = 0.5）を入力し、パイプライン全体の動作を確認した。
+同一タービンのデータが存在しないため、合成データによるI/O接続テストを実施した。Module Aに5タービン × 12ヶ月のランダム生成リスクスコア（seed=42）、Module BにPaper 2の疲労推定ワークフローを模した合成DEL系列（月次変動＋タービン間ノイズ）、Module Cに等重み（α = β = 0.5）を入力し、パイプライン全体のデータフロー整合性を確認した。
 
-**Table 4: Correlation Analysis (Synthetic Data)**
+**Table 4: Pipeline Integration Test Results (Synthetic Data)**
 
-| Metric | Value | Interpretation |
+| Test Item | Result | Pass/Fail |
 |---|---|---|
-| Pearson r | 0.256 | 弱い正の相関（p = 0.048） |
-| Spearman r | 0.212 | 弱い正の相関（p = 0.104, 非有意） |
+| **型整合性**: Module A出力 → Module C入力の型一致 | 全カラムの型が仕様通り（str, int, float） | Pass |
+| **マージ正常動作**: inner join on [turbine_id, month] | 60行入力 → 60行出力（行数保存） | Pass |
+| **NULL処理**: マージ後の欠損値 | 欠損値なし（合成データのため） | Pass |
+| **出力範囲**: integrated_risk_norm の値域 | [0, 1] 範囲内（min=0.12, max=0.89） | Pass |
+| **重み反映**: α=β=0.5 でのfusion計算 | image_risk × 0.5 + fatigue_risk × 0.5 と一致 | Pass |
 
-この相関値は**パイプライン動作の確認**であり、予測性能の証拠ではない。Module Aの入力がランダム生成であるため、相関の大きさ自体に意味はない。本テストの意義は「データ形式の整合性」「マージロジックの正常動作」「出力の妥当な範囲」の確認に限定される。
+> **補足**: 合成データに対してPearson r = 0.256、Spearman r = 0.212が観察されたが、Module Aの入力がランダム生成であるため、これらの相関値は統計的に意味を持たない。数値はパイプラインが計算を正常に実行したことの副次的確認にすぎず、予測性能や変数間関係の証拠ではない。
+
+本テストの意義は「I/Oスキーマの整合性」「マージロジックの正常動作」「出力の妥当な範囲」の確認に限定される。実データによる統合検証は、同一タービンのデータ取得後に初めて可能となる。
 
 ---
 
-## 5. Gap Analysis
+## 6. Gap Analysis
 
-### 5.1 What Has Been Achieved
+### 6.1 What Has Been Achieved
 
 | Component | Achievement | Evidence |
 |---|---|---|
 | 画像損傷検出 | 自動検出 + スパン方向リスクスコア | Paper 1: mAP@0.5 = 0.58 |
-| 疲労荷重推定 | MM82 DELマトリクス + サイト月次DEL | Paper 2: 240 cases, R² = 0.943 |
-| I/O仕様 | 統合パイプラインの型実装 + I/O接続テスト | Phase 4: 合成データ動作確認 |
-| データ要件 | 真の統合に必要な条件の明確化 | 本論文 §5.3 |
+| 疲労荷重推定 | MM82 DELマトリクス + サイト月次DEL | Paper 2: 240 MM82 cases, R² = 0.943 |
+| I/O仕様 | 統合パイプラインのI/O仕様定義 + 合成データによるパイプライン接続テスト | Phase 4: 合成データでのデータフロー整合性確認 |
+| データ要件 | 真の統合に必要な条件の明確化 | 本論文 §6.3 |
 
-### 5.2 What Remains Unresolved
+### 6.2 What Remains Unresolved
 
 | Gap | Description | Severity |
 |---|---|---|
@@ -239,9 +321,17 @@ w_V/w_TIは同一物理量（風況パラメータ）間の相対重要度であ
 | **Cp_max増加の原因不明** | 劣化なしの証拠か、交絡因子か判別不能 | Medium |
 | **翼型プロキシの絶対精度** | MM82 DELの絶対値は参考値のみ | Low（相対比較には影響小） |
 
-上記のうち、修士研究における first-order bottleneck は「同一タービンデータの不在」と「α/β重みの根拠不在」の2点である。前者はデータ取得（§6.1）で解消するが、後者は補修記録の質と量に依存し、サンプルサイズが小さい場合には回帰的較正が統計的に不安定になる可能性がある。この2点が解消されない限り、他のギャップ（LE;CR、chord方向等）を改善しても統合スコアの妥当性を主張できない。
+**ギャップ間の依存関係**: 上記のギャップは独立ではなく、以下の依存構造を持つ。
 
-### 5.3 Data Requirements for True Integration
+- 「同一タービンデータの不在」は他のすべてのギャップの前提条件（root dependency）である。データ取得なしにα/β較正もLE;CR検出の実機検証も不可能
+- 「α/β重みの根拠不在」は「同一タービンデータ」+「補修記録」に依存する（sequential dependency）
+- 「LE;CR検出不能」と「chord方向の欠如」は互いに独立であり、それぞれ画像データ・モデル改善で並行して対処可能（independent）
+- 「月次粒度の粗さ」は同一タービンデータの取得により部分的に解消される可能性がある（SCADAの10分値は既に利用可能であり、画像の頻度が月次以上になれば粒度が改善する）が、短期イベントの画像捕捉には別途対策が必要
+- 「Cp_max増加の原因不明」と「翼型プロキシの絶対精度」は、同一タービンデータの取得とは独立に、追加分析（気象記録照合、翼型データ入手）で対処する性質の課題である
+
+上記のうち、修士研究における first-order bottleneck は「同一タービンデータの不在」と「α/β重みの根拠不在」の2点である。前者はデータ取得（§7.1）で解消するが、後者は補修記録の質と量に依存し、サンプルサイズが小さい場合には回帰的較正が統計的に不安定になる可能性がある。この2点が解消されない限り、他のギャップ（LE;CR、chord方向等）を改善しても統合スコアの妥当性を主張できない。
+
+### 6.3 Data Requirements for True Integration
 
 同一タービンでの真の統合研究には、以下のデータが最低限必要である:
 
@@ -262,9 +352,9 @@ w_V/w_TIは同一物理量（風況パラメータ）間の相対重要度であ
 
 ---
 
-## 6. Research Roadmap
+## 7. Research Roadmap
 
-### 6.1 Short-Term: Same-Turbine Data Acquisition
+### 7.1 Short-Term: Same-Turbine Data Acquisition
 
 **目標**: 同一タービンの点検画像・SCADA・補修履歴を確保する
 
@@ -274,13 +364,23 @@ w_V/w_TIは同一物理量（風況パラメータ）間の相対重要度であ
 | 学術データ共有プログラムの探索 | 0–6ヶ月 | DTU, Strathclyde, ORE Catapult等 |
 | 公開データセットの新規リリース監視 | 継続 | Zenodo, OpenFAST community |
 
-### 6.2 Medium-Term: Master's Research Design
+### 7.1.1 Gap Resolution Priority After Data Acquisition
+
+同一タービンデータ取得（first-order bottleneck解消）後の残存ギャップに対する推奨解決順序:
+
+1. **α/β較正**（最優先）: 補修記録との回帰分析による統合重みの較正。これなしに統合スコアの妥当性は主張不可。M4フェーズに対応
+2. **LE;CR検出改善**（高優先）: focal loss、minority oversampling、または追加データによる亀裂検出能力の獲得。α/β較正と並行して実施可能
+3. **chord方向の追加**（中優先）: LE/TE弁別の実現。LE;CR改善と並行可能だが、画像品質とブレード形状への依存が大きく、データ取得後に実現可能性を再評価する
+4. **月次粒度の改善**（低優先）: 点検頻度の増加またはイベント駆動型点検との組み合わせ。α/β較正の結果、月次粒度で十分な説明力が得られるかにより必要性が変わる
+5. **Cp_max原因特定・翼型精度向上**（低優先）: 気象記録照合、翼型データ入手。独立に進行可能だが、本パイプラインの統合スコア改善への直接的寄与は限定的
+
+### 7.2 Medium-Term: Master's Research Design
 
 **修士テーマ候補**: 「風車ブレードの表面損傷スコアと運転荷重指標を用いた補修優先順位・劣化進行リスク評価」
 
 | Phase | Content | 依存 |
 |---|---|---|
-| M1 | 同一タービンデータの取得・品質評価 | §6.1の成果 |
+| M1 | 同一タービンデータの取得・品質評価 | §7.1の成果 |
 | M2 | 画像損傷スコアの定義・算出（Paper 1手法の実機適用） | M1 |
 | M3 | DEL/荷重指標の推定（Paper 2手法の実機適用） | M1 |
 | M4 | 劣化進行リスクスコアの設計（α/β較正含む） | M2, M3 + 補修記録 |
@@ -294,23 +394,25 @@ w_V/w_TIは同一物理量（風況パラメータ）間の相対重要度であ
 - **検証**: 画像リスクスコアの変化量と荷重累積量の組み合わせが、いずれかの単独指標よりも補修実績（補修の有無または損傷進行度）の説明力が統計的に高いことを示す
 - **成果物**: 統合リスクスコアの定義、α/β較正結果、単独指標との比較評価
 
-単独指標で十分に説明できるという結果も、それ自体が有意義な知見である（統合の付加価値の限界を示す）。If only one modality proves sufficient explanatory power, that result still defines a valid boundary condition for the value of integration.
+単独指標で十分に説明できるという結果も、それ自体が有意義な知見である。統合が単独指標を上回らない場合、その結果は統合の付加価値の限界を画定する境界条件として意味を持つ。
 
-### 6.3 Long-Term: Toward Predictive Degradation Modeling
+### 7.3 Long-Term: Toward Predictive Degradation Modeling
 
 **博士テーマ候補**: 「風車ブレードの表面損傷・運転荷重履歴・空力応答を統合した劣化進行予測モデルの構築」
 
 修士からの発展として、経年データ（≥3年の同一タービン追跡）の導入による劣化進行速度モデル、空力性能低下（AEP損失）への接続、および因果推論的アプローチの検討が考えられる。
 
+将来の点検体制として、2Dスクリーニング（フリート全体の損傷候補抽出）→ 3D精密検査（候補ブレードの損傷定量化）の2段階構造が想定される。この構造では、2D検出のRecall（見逃し率）が劣化予測パイプライン全体のボトルネックとなる——2D段階で見逃された損傷は3D精密検査にも劣化予測モデルにも到達しない。本パイプラインのModule Aは、この2段階構造の第1段階として位置づけられ、Recall向上が最優先の改善課題となる。3D精密検査で得られる損傷の面積・深さ・体積は、Module Cの統合リスクスコアの精度を大幅に向上させる可能性があるが、フリート規模での3Dデータ管理コストとの兼ね合いが実用上の制約となる。
+
 ---
 
-## 7. Conclusion
+## 8. Conclusion
 
 本研究は、風車ブレードの劣化予測に向けて、画像損傷スコア・SCADA疲労荷重指標・空力シミュレーション較正を接続する統合パイプラインのアーキテクチャを設計し、残存ギャップとデータ要件を明確化した。
 
 主な成果:
 
-1. **パイプライン設計**: 3モジュールのI/O仕様を定義し、2層の重みパラメータ（Module B内部のw_V/w_TI、統合層のα/β）の役割を区別した
+1. **パイプライン設計**: 3モジュールのI/O仕様を定義し、2層の重みパラメータの役割を区別した。Module B内部のw_V/w_TIはPaper 2においてOpenFASTシミュレーションから較正済み（MM82: w_V=0.725, w_TI=0.275）であるのに対し、統合層のα/βは等重みデフォルト（α=β=0.5）のまま未較正である
 2. **ギャップの明確化**: 同一タービンデータの不在、α/β重みの根拠不在、LE;CR検出不能を主要な残存課題として特定した
 3. **データ要件の整理**: 真の統合研究に必要な最小データセット（1タービン × 2時点画像 + SCADA + 補修履歴）を定義した
 4. **研究ロードマップ**: 修士の最小成功ラインを含む段階的発展計画を提示した
@@ -322,21 +424,36 @@ w_V/w_TIは同一物理量（風況パラメータ）間の相対重要度であ
 ## References
 
 [1] Paper 1: Wind Turbine Blade Surface Damage Detection and Span-wise Risk Scoring Using Drone Inspection Images with Pyramid Patch Augmentation (本研究シリーズ)
-[2] Paper 2: Fatigue Load Estimation for Senvion MM82 via NREL 5MW Geometric Scaling and Public SCADA with IEC-Compliant Turbulence Measurement (本研究シリーズ)
-[3] Shihavuddin, A.S.M. et al. (2019): Energies, 12(4), 676. DOI: 10.3390/en12040676
-[4] Malik, A. & Bak, C. (2025): Wind Energy Science, 10, 227–247. DOI: 10.5194/wes-10-227-2025
+[2] Paper 2: Site-Specific Blade Fatigue Load Estimation via Reference Turbine Scaling and Public SCADA: A Penmanshiel Case Study (本研究シリーズ)
+[3] Shihavuddin, A.S.M. et al. (2019): Wind turbine surface damage detection by deep learning aided drone inspection analysis. Energies, 12(4), 676. DOI: 10.3390/en12040676
+[4] Malik, T.H. and Bak, C. (2025): Challenges in detecting wind turbine power loss: the effects of blade erosion, turbulence, and time averaging. Wind Energy Science, 10, 227–243. DOI: 10.5194/wes-10-227-2025
 [5] Plumley, C. (2022): Penmanshiel Wind Farm Data. Zenodo. DOI: 10.5281/zenodo.5946808
-[6] DTU Wind Turbine Inspection Images: Mendeley Data, DOI: 10.17632/hd96prn3nc.2
-[7] Tautz-Weinert, J. and Watson, S.J. (2017): IET Renewable Power Generation, 11(4), 382–394
-[8] Hayman, G.J. (2012): MLife Theory Manual. NREL
-[9] Pandit, R. et al. (2023): SCADA data for wind turbine data-driven condition/performance monitoring: A review on state-of-art, challenges and future trends. Wind Engineering, 47(2), 339–350. DOI: 10.1177/0309524X221124031
+[6] DTU Wind Turbine Inspection Images. Mendeley Data. DOI: 10.17632/hd96prn3nc.2
+[7] Tautz-Weinert, J. and Watson, S.J. (2017): Using SCADA data for wind turbine condition monitoring — a review. IET Renewable Power Generation, 11(4), 382–394. DOI: 10.1049/iet-rpg.2016.0248
+[8] Hayman, G.J. (2012): MLife Theory Manual. NREL.
+[9] Pandit, R. et al. (2023): SCADA data for wind turbine data-driven condition/performance monitoring: A review on state-of-art, challenges and future trends. Wind Engineering, 47(2), 422–441. DOI: 10.1177/0309524X221124031
 [10] Tchakoua, P. et al. (2014): Wind Turbine Condition Monitoring: State-of-the-Art Review, New Trends, and Future Challenges. Energies, 7(4), 2595–2630. DOI: 10.3390/en7042595
+[11] Memari, M. et al. (2024): Review on the advancements in wind turbine blade inspection: Integrating drone and deep learning technologies for enhanced defect detection. IEEE Access, 12, 33236–33282. DOI: 10.1109/ACCESS.2024.3371493
+[12] García Márquez, F.P. and Peco Chacón, A.M. (2020): A review of non-destructive testing on wind turbines blades. Renewable Energy, 161, 998–1010. DOI: 10.1016/j.renene.2020.07.145
+[13] Stetco, A. et al. (2019): Machine learning methods for wind turbine condition monitoring: A review. Renewable Energy, 133, 620–635. DOI: 10.1016/j.renene.2018.10.047
+[14] Dao, P.B. et al. (2018): Condition monitoring and fault detection in wind turbines based on cointegration analysis of SCADA data. Renewable Energy, 116, 107–122. DOI: 10.1016/j.renene.2017.10.014
+[15] Gohar, I. et al. (2025): Review of state-of-the-art surface defect detection on wind turbine blades through aerial imagery: Challenges and recommendations. Engineering Applications of Artificial Intelligence, 144, 109970. DOI: 10.1016/j.engappai.2024.109970
+[16] Liu, Y.-H. et al. (2024): Defect detection of the surface of wind turbine blades combining attention mechanism. Advanced Engineering Informatics, 59, 102292. DOI: 10.1016/j.aei.2023.102292
+[17] Yang, W. et al. (2013): Wind turbine condition monitoring by the approach of SCADA data analysis. Renewable Energy, 53, 365–376. DOI: 10.1016/j.renene.2012.11.030
+[18] Castellani, F. et al. (2024): Wind turbine gearbox condition monitoring through the sequential analysis of industrial SCADA and vibration data. Energy Reports, 12, 750–761. DOI: 10.1016/j.egyr.2024.06.041
+[19] Maldonado-Correa, J. et al. (2020): Using SCADA data for wind turbine condition monitoring: A systematic literature review. Energies, 13(12), 3132. DOI: 10.3390/en13123132
+[20] Kandemir, E. et al. (2024): Predictive digital twin for wind energy systems: A literature review. Energy Informatics, 7, 68. DOI: 10.1186/s42162-024-00373-9
+[21] Branlard, E. et al. (2020): A digital twin based on OpenFAST linearizations for real-time load estimation of land-based turbines. Journal of Physics: Conference Series, 1618, 022030. DOI: 10.1088/1742-6596/1618/2/022030
+[22] Hu, W. et al. (2025): Digital twin of wind turbine surface damage detection based on deep learning-aided drone inspection. Renewable Energy, 241, 122332. DOI: 10.1016/j.renene.2024.122332
+[23] Nielsen, J.S. and Sørensen, J.D. (2011): On risk-based operation and maintenance of offshore wind turbine components. Reliability Engineering & System Safety, 96(1), 218–229. DOI: 10.1016/j.ress.2010.07.007
+[24] Florian, M. and Sørensen, J.D. (2017): Risk-based planning of operation and maintenance for offshore wind farms. Energy Procedia, 137, 261–272. DOI: 10.1016/j.egypro.2017.10.349
+[25] Yeter, B. et al. (2020): Risk-based maintenance planning of offshore wind turbine farms. Reliability Engineering & System Safety, 202, 107062. DOI: 10.1016/j.ress.2020.107062
 
 ---
 
 ## 真の統合研究に必要なデータ要件一覧
 
-データ要件の詳細は §5.3 Table 6 を参照。以下に入手可能性の補足を示す。
+データ要件の詳細は §6.3 Table 6 を参照。以下に入手可能性の補足を示す。
 
 | Priority | Data Type | 入手可能性 |
 |---|---|---|
@@ -392,3 +509,5 @@ w_V/w_TIは同一物理量（風況パラメータ）間の相対重要度であ
 | v1.0 | 2026-04-04 | 初稿完了: 全7出力（タイトル案、1文主張、章立て、本文Introduction〜Conclusion、データ要件、研究計画書要約、まだ言えないこと） |
 | v2.0 | 2026-04-04 | 設計論・研究計画書寄りに改訂: タイトルをDesign/Roadmap前面化、Abstract設計図価値前面化、§2.1 Module A将来仕様注記、§3.3 w_V/w_TI vs alpha/beta区別、§4→I/O Connection Test・Table 5削除、§6.2最小成功ライン、文献[9][10]追加 |
 | v3.0 | 2026-04-04 | 最終調整: 1文主張短縮、§2圧縮、§4 Kaggle SCADA→合成DEL系列に表現調整、§5.2後にfirst-order bottlenecks段落、Conclusion最終文を条件・意義明確化、§1.2/§1.3/§3.3/§5.1の冗長部圧縮（全体約8%） |
+| v4.0 | 2026-04-08 | 構造改訂: §2 Related Work新設（7小節、文献[11]–[25]追加で計25件）、§4.1アーキテクチャ図を改善（実装ステータス・マージ条件・注記追加）、Table 5 Current State vs Target State追加、§4.1.1設計根拠（なぜ線形パイプラインか）追加、Table 4をPipeline Integration Test Resultsとして再構成、Table 1/2に脚注追加（将来仕様・重み根拠・正規化方法）、マージ仕様（inner join・欠損月処理）明記、§6.1「型実装」→「I/O仕様定義」に修正、§8 Conclusion item 1でw_V/w_TIとα/βの較正ステータスを明確化、全§番号を新構造に合わせて更新 |
+| v5.0 | 2026-04-10 | §2 Related Work圧縮（7小節→4小節、文献25件は維持、記述を約60%圧縮）。§7.2の英日混在文を日本語に統一 |

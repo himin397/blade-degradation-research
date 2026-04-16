@@ -1,0 +1,303 @@
+[
+  {
+    "title": "Wind Turbine Surface Damage Detection by Deep Learning Aided Drone Inspection Analysis",
+    "first_author": "Shihavuddin",
+    "year": 2019,
+    "doi": "10.3390/en12040676",
+    "source_papers": ["paper1", "paper3"]
+  },
+  {
+    "title": "Slice-Aided Defect Detection in Ultra High-Resolution Wind Turbine Blade Images",
+    "first_author": "Gohar",
+    "year": 2023,
+    "doi": "10.3390/machines11100953",
+    "source_papers": ["paper1"]
+  },
+  {
+    "title": "Challenges in detecting wind turbine power loss: the effects of blade erosion, turbulence, and time averaging",
+    "first_author": "Malik",
+    "year": 2025,
+    "doi": "10.5194/wes-10-227-2025",
+    "source_papers": ["paper1", "paper2", "paper3"]
+  },
+  {
+    "title": "Focal Loss for Dense Object Detection",
+    "first_author": "Lin",
+    "year": 2017,
+    "doi": "arXiv:1708.02002",
+    "source_papers": ["paper1"]
+  },
+  {
+    "title": "Research of U-Net-Based CNN Architectures for Metal Surface Defect Detection",
+    "first_author": "Konovalenko",
+    "year": 2022,
+    "doi": "10.3390/machines10050327",
+    "source_papers": ["paper1"]
+  },
+  {
+    "title": "Automatic Classification of Defective Photovoltaic Module Cells in Electroluminescence Images",
+    "first_author": "Deitsch",
+    "year": 2019,
+    "doi": "10.1016/j.solener.2019.02.067",
+    "source_papers": ["paper1"]
+  },
+  {
+    "title": "Deep Learning-Based Crack Damage Detection Using Convolutional Neural Networks",
+    "first_author": "Cha",
+    "year": 2017,
+    "doi": "10.1111/mice.12263",
+    "source_papers": ["paper1"]
+  },
+  {
+    "title": "Review on the Advancements in Wind Turbine Blade Inspection: Integrating Drone and Deep Learning Technologies for Enhanced Defect Detection",
+    "first_author": "Memari",
+    "year": 2024,
+    "doi": "10.1109/ACCESS.2024.3371493",
+    "source_papers": ["paper1", "paper3"]
+  },
+  {
+    "title": "Deep Learning in Defect Detection of Wind Turbine Blades: A Review",
+    "first_author": "Masita",
+    "year": 2025,
+    "doi": "10.1109/ACCESS.2025.3569799",
+    "source_papers": ["paper1"]
+  },
+  {
+    "title": "Enhancing wind turbine blade damage detection with YOLO-Wind",
+    "first_author": "Zhao",
+    "year": 2025,
+    "doi": "10.1038/s41598-025-03639-8",
+    "source_papers": ["paper1"]
+  },
+  {
+    "title": "DMR-YOLO: An Improved Wind Turbine Blade Surface Damage Detection Method Based on YOLOv8",
+    "first_author": "Shi",
+    "year": 2026,
+    "doi": "10.3390/app16031333",
+    "source_papers": ["paper1"]
+  },
+  {
+    "title": "DCW-YOLO: An Improved Method for Surface Damage Detection of Wind Turbine Blades",
+    "first_author": "Zou",
+    "year": 2024,
+    "doi": "10.3390/app14198763",
+    "source_papers": ["paper1"]
+  },
+  {
+    "title": "An improved method of AUD-YOLO for surface damage detection of wind turbine blades",
+    "first_author": "Zou",
+    "year": 2025,
+    "doi": "10.1038/s41598-025-89864-7",
+    "source_papers": ["paper1"]
+  },
+  {
+    "title": "Slicing Aided Hyper Inference and Fine-Tuning for Small Object Detection",
+    "first_author": "Akyon",
+    "year": 2022,
+    "doi": "10.1109/ICIP46576.2022.9897990",
+    "source_papers": ["paper1"]
+  },
+  {
+    "title": "Using SCADA data for wind turbine condition monitoring - a review",
+    "first_author": "Tautz-Weinert",
+    "year": 2017,
+    "doi": "10.1049/iet-rpg.2016.0248",
+    "source_papers": ["paper2", "paper3"]
+  },
+  {
+    "title": "Penmanshiel Wind Farm Data",
+    "first_author": "Plumley",
+    "year": 2022,
+    "doi": "10.5281/zenodo.5946808",
+    "source_papers": ["paper2", "paper3"]
+  },
+  {
+    "title": "MLife Theory Manual for Version 1.00",
+    "first_author": "Hayman",
+    "year": 2012,
+    "doi": null,
+    "source_papers": ["paper2", "paper3"]
+  },
+  {
+    "title": "Definition of a 5-MW Reference Wind Turbine for Offshore System Development",
+    "first_author": "Jonkman",
+    "year": 2009,
+    "doi": null,
+    "source_papers": ["paper2"]
+  },
+  {
+    "title": "The DTU 10-MW Reference Wind Turbine",
+    "first_author": "Bak",
+    "year": 2013,
+    "doi": null,
+    "source_papers": ["paper2"]
+  },
+  {
+    "title": "Impact of turbulence induced loads and wave kinematic models on fatigue reliability estimates of offshore wind turbine monopiles",
+    "first_author": "Colone",
+    "year": 2018,
+    "doi": null,
+    "source_papers": ["paper2"]
+  },
+  {
+    "title": "Model of wind shear conditional on turbulence and its impact on wind turbine loads",
+    "first_author": "Dimitrov",
+    "year": 2015,
+    "doi": null,
+    "source_papers": ["paper2"]
+  },
+  {
+    "title": "Analysing wind turbine fatigue load prediction: The impact of wind farm flow conditions",
+    "first_author": "Vera-Tudela",
+    "year": 2017,
+    "doi": "10.1016/j.renene.2017.01.065",
+    "source_papers": ["paper2"]
+  },
+  {
+    "title": "Bayesian state prediction of wind turbine bearing failure",
+    "first_author": "Herp",
+    "year": 2018,
+    "doi": null,
+    "source_papers": ["paper2"]
+  },
+  {
+    "title": "DOE/MSU Composite Material Fatigue Database: Test Methods, Materials, and Analysis",
+    "first_author": "Mandell",
+    "year": 1997,
+    "doi": "10.2172/578635",
+    "source_papers": ["paper2"]
+  },
+  {
+    "title": "Demonstration of Requirements for Life Extension of Wind Turbines Beyond Their Design Life",
+    "first_author": "Natarajan",
+    "year": 2020,
+    "doi": null,
+    "source_papers": ["paper2"]
+  },
+  {
+    "title": "A reference open-source controller for fixed and floating offshore wind turbines",
+    "first_author": "Abbas",
+    "year": 2022,
+    "doi": null,
+    "source_papers": ["paper2"]
+  },
+  {
+    "title": "Wind Turbine Design Cost and Scaling Model",
+    "first_author": "Fingersh",
+    "year": 2006,
+    "doi": null,
+    "source_papers": ["paper2"]
+  },
+  {
+    "title": "SCADA data for wind turbine data-driven condition/performance monitoring: A review on state-of-art, challenges and future trends",
+    "first_author": "Pandit",
+    "year": 2023,
+    "doi": "10.1177/0309524X221124031",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "Wind Turbine Condition Monitoring: State-of-the-Art Review, New Trends, and Future Challenges",
+    "first_author": "Tchakoua",
+    "year": 2014,
+    "doi": "10.3390/en7042595",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "A review of non-destructive testing on wind turbines blades",
+    "first_author": "Garcia Marquez",
+    "year": 2020,
+    "doi": "10.1016/j.renene.2020.07.145",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "Machine learning methods for wind turbine condition monitoring: A review",
+    "first_author": "Stetco",
+    "year": 2019,
+    "doi": "10.1016/j.renene.2018.10.047",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "Condition monitoring and fault detection in wind turbines based on cointegration analysis of SCADA data",
+    "first_author": "Dao",
+    "year": 2018,
+    "doi": "10.1016/j.renene.2017.10.014",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "Review of state-of-the-art surface defect detection on wind turbine blades through aerial imagery: Challenges and recommendations",
+    "first_author": "Gohar",
+    "year": 2025,
+    "doi": "10.1016/j.engappai.2024.109970",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "Defect detection of the surface of wind turbine blades combining attention mechanism",
+    "first_author": "Liu",
+    "year": 2024,
+    "doi": "10.1016/j.aei.2023.102292",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "Wind turbine condition monitoring by the approach of SCADA data analysis",
+    "first_author": "Yang",
+    "year": 2013,
+    "doi": "10.1016/j.renene.2012.11.030",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "Wind turbine gearbox condition monitoring through the sequential analysis of industrial SCADA and vibration data",
+    "first_author": "Castellani",
+    "year": 2024,
+    "doi": "10.1016/j.egyr.2024.06.041",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "Using SCADA data for wind turbine condition monitoring: A systematic literature review",
+    "first_author": "Maldonado-Correa",
+    "year": 2020,
+    "doi": "10.3390/en13123132",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "Predictive digital twin for wind energy systems: A literature review",
+    "first_author": "Kandemir",
+    "year": 2024,
+    "doi": "10.1186/s42162-024-00373-9",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "A digital twin based on OpenFAST linearizations for real-time load estimation of land-based turbines",
+    "first_author": "Branlard",
+    "year": 2020,
+    "doi": "10.1088/1742-6596/1618/2/022030",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "Digital twin of wind turbine surface damage detection based on deep learning-aided drone inspection",
+    "first_author": "Hu",
+    "year": 2025,
+    "doi": "10.1016/j.renene.2024.122332",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "On risk-based operation and maintenance of offshore wind turbine components",
+    "first_author": "Nielsen",
+    "year": 2011,
+    "doi": "10.1016/j.ress.2010.07.007",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "Risk-based planning of operation and maintenance for offshore wind farms",
+    "first_author": "Florian",
+    "year": 2017,
+    "doi": "10.1016/j.egypro.2017.10.349",
+    "source_papers": ["paper3"]
+  },
+  {
+    "title": "Risk-based maintenance planning of offshore wind turbine farms",
+    "first_author": "Yeter",
+    "year": 2020,
+    "doi": "10.1016/j.ress.2020.107062",
+    "source_papers": ["paper3"]
+  }
+]
