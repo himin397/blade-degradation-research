@@ -1,7 +1,7 @@
 # Paper 3: 風車ブレード劣化予測に向けた画像・SCADA・空力シミュレーション統合パイプラインの設計とギャップ分析
 
-**ステータス**: v5.0（§2圧縮・文体統一）
-**最終更新**: 2026-04-10
+**ステータス**: v5.6（Paper 1 v9.6 の画像数訂正（559→301）を §3.1 に反映）
+**最終更新**: 2026-07-02
 
 ---
 
@@ -67,7 +67,7 @@ References
 
 ### 1.1 Background and Motivation
 
-風車ブレードは20年以上の運用期間を通じて、エロージョン、亀裂、雷撃損傷等の表面劣化と、繰り返し疲労荷重による構造的劣化を同時に受ける [10][11]。現行のO&M実務では、定期的なドローン点検やロープアクセス点検による画像評価と、SCADAデータに基づく運転状態監視が独立に行われている [9][13]。しかし、表面損傷の視覚的評価と運転荷重履歴を統合して劣化進行リスクを定量的に評価する枠組みは、まだ確立されていない [11][12]。
+風車ブレードは20年以上の運用期間を通じて、エロージョン、亀裂、雷撃損傷等の表面劣化と、繰り返し疲労荷重による構造的劣化を同時に受ける [10][11]。特に前縁エロージョン（LEE: Leading Edge Erosion）は、Mishnaevsky et al. (2021) [26] が指摘するように、気象学・空力・材料科学・計算力学にまたがる multiscale multiphysics プロセスであり、その評価と対策には複数分野の情報統合が本質的に要請される。さらに、Pryor et al. (2022) [28] は北米・欧州 6 地点の長期 disdrometer 観測を整理し、降雨強度（RR）・droplet size distribution（DSD）・雹頻度の地点間変動性と風速との同時分布が LEE 発生条件を支配することを示しており、site-specific な大気観測の重要性が再確認されている。現行のO&M実務では、定期的なドローン点検やロープアクセス点検による画像評価と、SCADAデータに基づく運転状態監視が独立に行われている [9][13]。しかし、表面損傷の視覚的評価と運転荷重履歴を統合して劣化進行リスクを定量的に評価する枠組みは、まだ確立されていない [11][12]。
 
 ### 1.2 Problem: The Integration Gap
 
@@ -89,7 +89,7 @@ References
 
 ### 2.1 Single-Modality Approaches and Their Limits
 
-**SCADA**: Tautz-Weinert & Watson (2017) [7] のレビュー以降、SCADAベースの状態監視は急速に発展している。Pandit et al. (2023) [9] は正常挙動モデリング・異常検知・残余寿命推定の3段階を整理し、Stetco et al. (2019) [13] は機械学習手法の体系的比較を行った。Dao et al. (2018) [14] はSCADA信号の組み合わせによるコンポーネント故障診断を実証した。しかし、SCADAデータ単独では故障の根本原因（ブレード損傷 vs 機械的摩耗 vs 電気系統）の弁別が困難であることが共通の限界である [9][13]。
+**SCADA**: Tautz-Weinert & Watson (2017) [7] のレビュー以降、SCADAベースの状態監視は急速に発展している。Pandit et al. (2023) [9] はSCADAデータを用いた状態監視・性能監視の最新動向を概観し、Stetco et al. (2019) [13] は機械学習手法を体系的に分類・比較した。Dao et al. (2018) [14] はSCADA信号の組み合わせによるコンポーネント故障診断を実証した。しかし、SCADAデータは10分平均という時間粒度のため故障の二次的影響を捉えるに留まり、機械系・電気系故障の根本原因を直接弁別することは困難であることが指摘されている [9]。
 
 **画像**: Shihavuddin et al. (2019) [3] 以降、ドローン画像×深層学習によるブレード損傷検出は急速に進歩し、Gohar et al. (2025) [15] が最新動向を整理している。Liu et al. (2024) [16] はアテンション機構による軽量検出ネットワークを提案した。しかし、検出結果を運転データと統合してリスク評価に接続する枠組みは提示されていない。
 
@@ -97,7 +97,11 @@ References
 
 ### 2.2 Multi-Modal Fusion and Digital Twin
 
-マルチモーダル融合研究は主にドライブトレインに集中している。Yang et al. (2013) [17] はSCADAの複数パラメータ結合による異常検出を実証し、Castellani et al. (2024) [18] はSCADAとCMS振動データの融合でギアボックス故障を検出した。Maldonado-Correa et al. (2020) [19] はデータ融合手法を整理しつつ、公開データの不足を障壁として指摘した。いずれもブレード劣化に対する画像・SCADA・物理モデルの3モダリティ融合は検討していない。
+マルチモーダル融合研究は主にドライブトレインに集中している。Yang et al. (2013) [17] はSCADAの複数パラメータ結合による異常検出を実証し、Castellani et al. (2024) [18] はSCADAとCMS振動データの融合でギアボックス故障を検出した。Maldonado-Correa et al. (2020) [19] はSCADAデータに基づくAIベース状態監視手法を体系的にレビューしつつ、公開データの不足を障壁として指摘した。いずれもブレード劣化に対する画像・SCADA・物理モデルの3モダリティ融合は検討していない。
+
+ブレード LEE に特化した先行研究として、Law & Koutsos (2020) [27] は SCADA 由来の blade tip speed と気象データ由来の rainfall rate を droplet impact 物理（kinetic energy / impact force / water-hammer pressure / average rain erosion stress の 4 種類の Erosion Severity Indicators, ESI 1-4）を介して結合し、18 のオペレーショナル wind farms（UK）における LEE 発症と severity の予測を試みた。ESI は気象・運転情報の 2 モダリティを物理ベースで統合する先行例であり、本研究と方向性を共有する一方、画像由来の損傷状態は組み込まれていない。本パイプラインはこの 2 モダリティに **画像由来の損傷スコア（Module A）** を加えることで、物理ベース予測子と観測された surface damage の cross-validation を可能にする 3 モダリティ統合に拡張する点が、Law & Koutsos のフレームワークと異なる位置にある。
+
+なお、Pryor et al. (2022) [28] は ESI 系手法の入力となる気象観測自体の不確実性を体系的に整理しており、(a) Marshall-Palmer や Best DSD の標準近似が実観測 DSD（特に D > 0.5 mm の大粒径領域）を十分に表現しないこと、(b) RR と hub-height 風速の同時分布が地点間で桁レベルで変動すること、(c) 運動エネルギ評価には ideally 1-min 分解能の DSD/RR サンプリングが必要であることを推奨事項として挙げている。これらは Law & Koutsos の物理ベース ESI を実 wind farm に適用する際の前処理仕様に対する制約条件であり、本パイプラインの将来拡張（気象記録の取り扱い、Module B の入力前処理）における設計指針として位置づけられる。
 
 デジタルツインの領域では、Kandemir et al. (2024) [20] が物理駆動型・データ駆動型・ハイブリッド型を整理し、Branlard et al. (2020) [21] がOpenFASTベースのリアルタイム荷重推定を提示した。Hu et al. (2025) [22] は画像由来の損傷情報をデジタルツインに反映するアプローチを示したが、SCADAとの統合は対象外である。本パイプラインは完全なデジタルツインではなく、その構成要素のI/O仕様と接続設計を整理する予備段階に位置する。
 
@@ -121,7 +125,7 @@ CBM/RBIフレームワークは、リスク評価の入力として「状態情�
 
 ### 3.1 Image-Based Damage Detection and Risk Scoring (Paper 1)
 
-Paper 1では、DTU公開画像559枚にYOLOv8n＋ピラミッドパッチ拡張を適用し、5損傷クラスの検出（mAP@0.5 = 0.58）とスパン方向リスクスコア（Tip/Mid/Root）を算出した。既知の制約として、LE;CR検出不能（AP = 0.00）、chord方向除外、重みはpractitioner-informed priorsである（Paper 1 §3.4）。
+Paper 1では、DTU公開画像のアノテーション付き301枚にYOLOv8n＋ピラミッドパッチ拡張を適用し、5損傷クラスの検出（mAP@0.5 = 0.58）とスパン方向リスクスコア（Tip/Mid/Root）を算出した。既知の制約として、LE;CR検出不能（AP = 0.00）、chord方向除外、重みはpractitioner-informed priorsである（Paper 1 §3.4）。
 
 **出力粒度の注記**: DTU画像は単一サイト（Nordtank）の横断的データであり、turbine_id × monthの時系列粒度を持たない。Table 1の出力スキーマは実機での定期点検データ蓄積後に実現される将来仕様であり、現状は「1時点分」に相当する。
 
@@ -342,7 +346,7 @@ w_V/w_TIは同一物理量（風況パラメータ）間の相対重要度であ
 | **点検画像** | 同一タービンの複数時点のドローン画像、ブレードID付き | 1タービン × 3時点以上 | **必須** |
 | **SCADA** | 同一タービンの10分値、風速標準偏差含む | 同期間（≥1年） | **必須** |
 | **補修履歴** | 補修箇所、日時、損傷タイプ、補修種別 | 同一タービン | **必須** |
-| **気象記録** | サイト近傍の気象データ（風況正規化用） | 同期間 | 推奨 |
+| **気象記録** | サイト近傍の気象データ（風況正規化用、DSD/RR 情報があれば望ましい [28]） | 同期間（≥1年） | 推奨（LEE 主軸の研究では準必須） |
 | **故障/停止記録** | 計画停止/非計画停止の時刻・原因 | 同期間 | 推奨 |
 | **翼型データ** | 対象機種のブレード翼型ポーラー | — | 理想的 |
 
@@ -436,18 +440,21 @@ w_V/w_TIは同一物理量（風況パラメータ）間の相対重要度であ
 [11] Memari, M. et al. (2024): Review on the advancements in wind turbine blade inspection: Integrating drone and deep learning technologies for enhanced defect detection. IEEE Access, 12, 33236–33282. DOI: 10.1109/ACCESS.2024.3371493
 [12] García Márquez, F.P. and Peco Chacón, A.M. (2020): A review of non-destructive testing on wind turbines blades. Renewable Energy, 161, 998–1010. DOI: 10.1016/j.renene.2020.07.145
 [13] Stetco, A. et al. (2019): Machine learning methods for wind turbine condition monitoring: A review. Renewable Energy, 133, 620–635. DOI: 10.1016/j.renene.2018.10.047
-[14] Dao, P.B. et al. (2018): Condition monitoring and fault detection in wind turbines based on cointegration analysis of SCADA data. Renewable Energy, 116, 107–122. DOI: 10.1016/j.renene.2017.10.014
+[14] Dao, P.B. et al. (2018): Condition monitoring and fault detection in wind turbines based on cointegration analysis of SCADA data. Renewable Energy, 116, 107–122. DOI: 10.1016/j.renene.2017.06.089
 [15] Gohar, I. et al. (2025): Review of state-of-the-art surface defect detection on wind turbine blades through aerial imagery: Challenges and recommendations. Engineering Applications of Artificial Intelligence, 144, 109970. DOI: 10.1016/j.engappai.2024.109970
 [16] Liu, Y.-H. et al. (2024): Defect detection of the surface of wind turbine blades combining attention mechanism. Advanced Engineering Informatics, 59, 102292. DOI: 10.1016/j.aei.2023.102292
 [17] Yang, W. et al. (2013): Wind turbine condition monitoring by the approach of SCADA data analysis. Renewable Energy, 53, 365–376. DOI: 10.1016/j.renene.2012.11.030
 [18] Castellani, F. et al. (2024): Wind turbine gearbox condition monitoring through the sequential analysis of industrial SCADA and vibration data. Energy Reports, 12, 750–761. DOI: 10.1016/j.egyr.2024.06.041
 [19] Maldonado-Correa, J. et al. (2020): Using SCADA data for wind turbine condition monitoring: A systematic literature review. Energies, 13(12), 3132. DOI: 10.3390/en13123132
 [20] Kandemir, E. et al. (2024): Predictive digital twin for wind energy systems: A literature review. Energy Informatics, 7, 68. DOI: 10.1186/s42162-024-00373-9
-[21] Branlard, E. et al. (2020): A digital twin based on OpenFAST linearizations for real-time load estimation of land-based turbines. Journal of Physics: Conference Series, 1618, 022030. DOI: 10.1088/1742-6596/1618/2/022030
+[21] Branlard, E. et al. (2020): A digital twin based on OpenFAST linearizations for real-time load and fatigue estimation of land-based turbines. Journal of Physics: Conference Series, 1618, 022030. DOI: 10.1088/1742-6596/1618/2/022030
 [22] Hu, W. et al. (2025): Digital twin of wind turbine surface damage detection based on deep learning-aided drone inspection. Renewable Energy, 241, 122332. DOI: 10.1016/j.renene.2024.122332
 [23] Nielsen, J.S. and Sørensen, J.D. (2011): On risk-based operation and maintenance of offshore wind turbine components. Reliability Engineering & System Safety, 96(1), 218–229. DOI: 10.1016/j.ress.2010.07.007
 [24] Florian, M. and Sørensen, J.D. (2017): Risk-based planning of operation and maintenance for offshore wind farms. Energy Procedia, 137, 261–272. DOI: 10.1016/j.egypro.2017.10.349
 [25] Yeter, B. et al. (2020): Risk-based maintenance planning of offshore wind turbine farms. Reliability Engineering & System Safety, 202, 107062. DOI: 10.1016/j.ress.2020.107062
+[26] Mishnaevsky Jr., L. et al. (2021): Leading edge erosion of wind turbine blades: Understanding, prevention and protection. Renewable Energy, 169, 953–969. DOI: 10.1016/j.renene.2021.01.044
+[27] Law, H. and Koutsos, V. (2020): Leading edge erosion of wind turbines: Effect of solid airborne particles and rain on operational wind farms. Wind Energy, 23(10), 1955–1965. DOI: 10.1002/we.2540
+[28] Pryor, S.C.; Barthelmie, R.J.; Cadence, J.; Dellwik, E.; Hasager, C.B.; Kral, S.T.; Reuder, J.; Rodgers, M.; Veraart, M. (2022): Atmospheric Drivers of Wind Turbine Blade Leading Edge Erosion: Review and Recommendations for Future Research. Energies, 15(22), 8553. DOI: 10.3390/en15228553
 
 ---
 
@@ -511,3 +518,9 @@ w_V/w_TIは同一物理量（風況パラメータ）間の相対重要度であ
 | v3.0 | 2026-04-04 | 最終調整: 1文主張短縮、§2圧縮、§4 Kaggle SCADA→合成DEL系列に表現調整、§5.2後にfirst-order bottlenecks段落、Conclusion最終文を条件・意義明確化、§1.2/§1.3/§3.3/§5.1の冗長部圧縮（全体約8%） |
 | v4.0 | 2026-04-08 | 構造改訂: §2 Related Work新設（7小節、文献[11]–[25]追加で計25件）、§4.1アーキテクチャ図を改善（実装ステータス・マージ条件・注記追加）、Table 5 Current State vs Target State追加、§4.1.1設計根拠（なぜ線形パイプラインか）追加、Table 4をPipeline Integration Test Resultsとして再構成、Table 1/2に脚注追加（将来仕様・重み根拠・正規化方法）、マージ仕様（inner join・欠損月処理）明記、§6.1「型実装」→「I/O仕様定義」に修正、§8 Conclusion item 1でw_V/w_TIとα/βの較正ステータスを明確化、全§番号を新構造に合わせて更新 |
 | v5.0 | 2026-04-10 | §2 Related Work圧縮（7小節→4小節、文献25件は維持、記述を約60%圧縮）。§7.2の英日混在文を日本語に統一 |
+| v5.1 | 2026-04-26 | 参考文献検証による軽微修正：[21] Branlard 2020 のタイトル「real-time load estimation」→「real-time load and fatigue estimation」に修正（実物の正式タイトルから "and fatigue" が脱落していた。Branlard 2020 全12頁主張駆動精読で発見、本文§2.4 line 102 の主張記述は完全整合のため修正不要） |
+| v5.2 | 2026-04-27 | 参考文献検証による軽微修正：§2.1 line 92 の Pandit 2023 [9] と Stetco 2019 [13] の引用文脈ハルシネーションを修正。Pandit 2023 全20頁主張駆動精読で発見：(a) 「正常挙動モデリング・異常検知・残余寿命推定の3段階を整理」という記述は Pandit 2023 本文に存在しない（実際は Regression vs Classification の2分類が主軸）→「SCADAデータを用いた状態監視・性能監視の最新動向を概観」に修正。(b) 「ブレード損傷 vs 機械的摩耗 vs 電気系統の弁別困難」のうち「ブレード損傷」は Pandit 2023 p.430 の「pitch等のSCADA検出可能」記述と矛盾→「機械系・電気系故障の根本原因の直接弁別困難」に修正。(c) 共通限界の引用 [9][13] のうち Stetco 2019 [13] には対応する明示記述がないため [9] のみに変更。Pandit 2023 p.428 の「SCADA targets secondary effects」「10 minutes averaging time」記述に整合する表現に書き換え。Stetco 2019 全16頁精読も完了（書誌情報・「機械学習手法の体系的比較」帰属は完全整合・修正不要）。García Márquez 2020 全28頁完全精読完了（line 96 の3主張すべて完全整合・修正不要） |
+| v5.3 | 2026-04-27 | 参考文献検証による軽微修正：§2.2 line 100 の Maldonado-Correa et al. (2020) [19] の引用表現を精緻化。Maldonado-Correa 2020 全20頁主張駆動精読で発見：本論文の主旨は「SCADA + AI による Condition Monitoring の Systematic Literature Review」であり、Fig. 4 の Conceptual Mind Map で parametric modelling と intrusive monitoring techniques は exclusion として明示的に除外されている。本文中で「fusion」「data fusion」という用語は単一引用 [43] のみで、「fusion methods」を独立カテゴリにしたレビューではない。「データ融合手法を整理しつつ」→「SCADAデータに基づくAIベース状態監視手法を体系的にレビューしつつ」に修正（「公開データの不足を障壁として指摘した」部分は Abstract・§3.1・§4 で完全整合のため維持）。Tchakoua 2014 全36頁・Castellani 2024 全12頁・Kandemir 2024 全36頁の主張駆動精読も完了（いずれも完全整合・修正不要） |
+| v5.4 | 2026-06-12 | Mishnaevsky 2021 / Law & Koutsos 2020 の主張駆動全頁精読（A9 + A11a）による §1.1 と §2.2 の補強: (1) §1.1 Background and Motivation に Mishnaevsky 2021 [26] の multiscale multiphysics 性質に関する一文を追加（複数分野統合の本質的要請を示し、本研究の整合性を裏付け）。(2) §2.2 Multi-Modal Fusion に Law & Koutsos 2020 [27] の **ESI 1-4**（kinetic energy / impact force / water-hammer pressure / average rain erosion stress）に関するパラグラフを追加。Law の枠組みは SCADA (blade tip speed) + 気象（rainfall rate）の 2 モダリティを物理ベースで結合する直接の先行例であり、本研究は **画像由来の損傷スコア（Module A）を加えた 3 モダリティ統合への拡張** として位置づけを明確化（Paper 3 の独自性の論述強化）。(3) 参考文献 [26] Mishnaevsky 2021 と [27] Law & Koutsos 2020 を追加。引用根拠の詳細は `tools/reference_audit/A9_mishnaevsky_2021_full_reading_2026-06-11.md` と `tools/reference_audit/A11a_law_koutsos_2020_full_reading_2026-06-12.md` |
+| v5.6 | 2026-07-02 | Paper 1 v9.6 の実データ照合による数値訂正を反映: §3.1 の「DTU公開画像559枚」→「DTU公開画像のアノテーション付き301枚」。559 は訓練 bbox アノテーション数の誤転記だったことが Paper 1 側の実データ照合（yolo_dataset・COCO JSON）で確定（詳細は `tools/reference_audit/paper123_consistency_audit_2026-07-02.md`）。mAP@0.5 = 0.58 の表記は Paper 1 側の提示方法決定（val 最良 0.581 vs test 0.561）待ちで現状維持 |
+| v5.5 | 2026-06-13 | Pryor et al. 2022 [28] の主張駆動全 41p 精読（A11d）による §1.1・§2.2・§6.3 の補強: (1) §1.1 Background and Motivation に Pryor 2022 [28] の北米・欧州 6 地点 disdrometer 観測レビューの結果（DSD/RR/雹頻度の地点間変動性と風速 joint 分布が LEE 発生条件を支配）を追加し、site-specific な大気観測の重要性を明示。(2) §2.2 Multi-Modal Fusion で Law & Koutsos 段落の直後に Pryor 2022 の核心的推奨事項（Marshall-Palmer/Best DSD の不十分性、地点間変動性、1-min 分解能の必要性）をパラグラフ追加し、ESI 系手法を実 wind farm に適用する際の前処理仕様への制約条件として位置づけ（Module B 入力前処理の将来拡張の設計指針として）。(3) §6.3 Table 6 で気象記録の Priority を「推奨」から「推奨（LEE 主軸の研究では準必須）」に格上げし、DSD/RR 情報があれば望ましい旨を [28] と共に追記。(4) 参考文献 [28] Pryor et al. 2022 を追加。引用根拠の詳細は `tools/reference_audit/A11d_pryor_2022_full_reading_2026-06-13.md`。Paper 3 の主軸（画像 + SCADA + 物理較正）を歪めないよう、引用は最小限・限定的位置に留めた |

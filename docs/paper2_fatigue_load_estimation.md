@@ -1,7 +1,7 @@
 # Paper 2: OpenFASTスケーリングモデルと公開SCADAを用いたSenvion MM82風車の長期疲労荷重推定基盤の構築
 
-**ステータス**: v7.0（構成整理・DEL比率統計追加）
-**最終更新**: 2026-04-10（v7: タイトル確定、Abstract 4ブロック化、§4.4 Table 8b追加、Limitations 8項目に再構成）
+**ステータス**: v9.7（実データ照合による数値修正：年間DELレンジ 1,742→1,539（T11 の3ヶ月断片データ混入と確定）、7台→5台、T03 欠番の反映、Rainflow 誤差の方向修正）
+**最終更新**: 2026-07-02（v9.7: phase3_scada の実CSV・Zenodo static metadata・誤差算出スクリプトとの照合により数値矛盾を解決。§3.7 記述と実装の不一致（レコード別補間 vs 月次集計点補間）は himinさん 判断待ち。詳細は `tools/reference_audit/paper123_consistency_audit_2026-07-02.md`）
 
 ---
 
@@ -59,9 +59,9 @@ References
 
 **何を作ったか**: 公開データのみを用いて実サイトの風車ブレード根元フラップ疲労荷重（DEL）を推定する再現可能な基盤を構築した。幾何スケーリング、IEC準拠TI直接計測、および公開SCADAを一気通貫のパイプラインとして接続した点が本研究の寄与である。
 
-**どう作ったか**: NREL 5MW参照タービンのOpenFASTシミュレーション（DLC 1.2, 240ケース, ASTM E1049 Rainflow）でDELマトリクスを作成し、Senvion MM82への幾何スケーリング（λ_R = 0.651, 理論比との誤差6.5%）により機種適合DELマトリクスを生成した。これをPenmanshiel Wind Farm（7台, Zenodo公開SCADA）に適用し、10分値直接計測TIに基づく月次DELを算出した。
+**どう作ったか**: NREL 5MW参照タービンのOpenFASTシミュレーション（DLC 1.2, 240ケース, ASTM E1049 Rainflow）でDELマトリクスを作成し、Senvion MM82への幾何スケーリング（λ_R = 0.651, 理論比との誤差6.5%）により機種適合DELマトリクスを生成した。これをPenmanshiel Wind Farm（2020年通年データを持つ5台, Zenodo公開SCADA）に適用し、10分値直接計測TIに基づく月次DELを算出した。
 
-**主要結果**: 年間平均DELは1,497〜1,742 kN·m（タービン間幅）で、冬季にピークを示す季節性を確認した。6年間の縦断分析（T01）では、DEL増加（+13.7%）は風況変動が主因であり、公開SCADA指標の範囲内ではCp_maxの低下傾向は観察されなかった。
+**主要結果**: 年間平均DELは1,497〜1,539 kN·m（5台のタービン間幅）で、冬季にピークを示す季節性を確認した。6年間の縦断分析（T01）では、DEL増加（+13.7%）は風況変動が主因であり、公開SCADA指標の範囲内ではCp_maxの低下傾向は観察されなかった。
 
 **何を主張しないか**: 本基盤は荷重環境の相対的な定量化を目的としており、絶対荷重精度の保証およびブレード劣化の直接検出は対象外である。
 
@@ -71,7 +71,9 @@ References
 
 ### 1.1 Background
 
-風車ブレードは20年以上の設計寿命を通じて繰り返し疲労荷重を受ける。疲労荷重の蓄積はブレード構造の劣化進行に寄与し、前縁エロージョン等の表面損傷との複合的な影響も報告されている [8]。IEC 61400-1:2019 [7] に規定されるDLC 1.2（正常乱流モデル, NTM）は疲労設計の基本ケースであり、ブレード根元のフラップ方向曲げモーメントが主要な疲労損傷チャンネルとなる。疲労等価荷重（DEL: Damage Equivalent Load）は、Rainflow計数法に基づいて算出され、材料のS-Nカーブ（Wöhler曲線）の指数mに依存する。
+風車ブレードは20年以上の設計寿命を通じて繰り返し疲労荷重を受ける。IEC 61400-1:2019 [7] に規定されるDLC 1.2（正常乱流モデル, NTM）は疲労設計の基本ケースであり、ブレード根元のフラップ方向曲げモーメントが主要な疲労損傷チャンネルとなる。疲労等価荷重（DEL: Damage Equivalent Load）は、Rainflow計数法に基づいて算出され、材料のS-Nカーブ（Wöhler曲線）の指数mに依存する。
+
+一方、ブレード表面の前縁エロージョン等の損傷は発電性能（AEP）の低下要因として近年注目されている [8]。エロージョンの検出は乱流強度や時間平均の扱いによって困難であり、軽度で-0.82%、重度で-1.46%、高TI条件下では-2.14%のAEP損失が報告されている [8]。本研究はまず疲労荷重の推定基盤を構築し、将来的には表面損傷（点検画像）との統合による劣化進行リスク評価を目指す（統合設計はPaper 3で議論）。
 
 実運用では風速とTIが時々刻々変化するため、実サイトの長期DEL推定には風況統計との統合が必要である。しかし、aeroelasticシミュレーション環境の構築障壁が高く、DELマトリクスに基づくサイト固有の疲労荷重評価は普及していない。
 
@@ -94,7 +96,7 @@ References
 本研究の方法論的寄与は、以下の3要素の**組み合わせ**にある:
 
 - **幾何スケーリング＋翼型プロキシの限界の定量化**: 理論比との整合（6.5%）を示しつつ、モデルの主張範囲を相対比較に限定
-- **bin-averaged vs. 直接計測TIの実データ差異**: 約4倍の差を実サイトデータで確認し、既存文献の指摘（Colone et al. 2018 [12]）を裏付け
+- **bin-averaged vs. 直接計測TIの実データ差異**: 約4倍の差を実サイトデータで確認（Vera-Tudela & Kühn 2017 [20] は全頁精読済（2026-06-11）で同種の TI 方法論比較を扱っていないことを確認。既存文献での同種指摘の有無の最終確定は Dimitrov et al. 2015 [12] の全頁精読後に行う）
 - **公開データのみによる再現可能性**: 非公開データや商用ソフトウェアを一切使用せず、標準計算機で480ケースを48時間で完了可能
 
 いずれの要素も単独では既知の手法に基づく。しかし、これらを接続することで、特定サイト・特定機種の月次DEL変動や台間荷重比較が初めて可能になる——DELマトリクスのみでは季節変動を評価できず、SCADAのみではTI方法論の差異がDELに与える影響を定量化できない。この統合により、第三者が追試可能な形でサイト固有の疲労荷重環境を評価する基盤を構成した。
@@ -113,15 +115,15 @@ References
 
 ### 2.1 Aeroelastic Simulation for Fatigue Assessment
 
-OpenFASTはNRELが開発するオープンソースaeroelastic解析コードであり [1]、NREL 5MW参照タービン [2] は荷重評価研究の標準ベンチマークである。OpenFASTの妥当性はOC5プロジェクト等の第三者検証で確認されている [17]。Hayman (2012) はMLifeツールによるDEL算出手法（ASTM E1049準拠Rainflow、等価サイクル数正規化）を体系化した [10]。Rainflow計数法の原理はMatsuishi & Endo (1968) [14] に遡り、Downing & Socie (1982) [15] が計算アルゴリズムを体系化した。本研究はこの枠組みに準拠し、Python `rainflow` 3.2.0 [23] を使用する。ただし、荷重時系列からサイト固有の長期DELへ接続するパイプラインは標準化されておらず、TI計測精度への依存が大きい。
+OpenFASTはNRELが開発するオープンソースaeroelastic解析コードであり [1]、NREL 5MW参照タービン [2] は荷重評価研究の標準ベンチマークである。OpenFASTを含む複数の風力工学ツールはOC5プロジェクト等の第三者比較検証に参加しており、コード間の差異と実験との整合性が継続的に評価されている [16]（同プロジェクトはfloating semisubmersibleが対象で、本研究のonshore風車とは適用条件が異なる点に留意する）。Hayman (2012) はMLifeツールによるDEL算出手法（Downing & Socie (1982) のone-pass Rainflow計数、等価サイクル数正規化）を体系化した [10]。Rainflow計数法の原理はMatsuishi & Endo (1968) [13] に遡り、Downing & Socie (1982) [14] が計算アルゴリズムを体系化した。ASTM E1049-85 [6] はこのアルゴリズムを業界標準として整理した規格であり、本研究は同規格準拠のPython `rainflow` 3.2.0 [22] を使用する。ただし、荷重時系列からサイト固有の長期DELへ接続するパイプラインは標準化されておらず、TI計測精度への依存が大きい。
 
 ### 2.2 Reference Turbine Scaling
 
-Bak et al. (2013) はDTU 10MW参照タービンの設計にあたり、幾何スケーリング則を体系的に整理した [3]。Fingersh et al. (2006) はNRELの風車設計コスト・スケーリングモデルにおいて、ブレード質量がR^2.3でスケーリングする経験則を提示した [16]。断面剛性はR^4でスケーリングする経験則と合わせ、これらが広く用いられている。ただし、翼型データの機種固有性（非公開の場合が多い）がスケーリング精度の主要な不確実性要因となる。Bir & Jonkman (2007) はリファレンスタービンのモーダル解析とスケーリング則の限界を議論し、翼型の空力データが機種固有であるため、幾何スケーリングのみでは動的応答の精密な再現に限界があることを指摘した [11]。本研究はこの限界を前提とし、スケーリングモデルの主張範囲を相対比較に限定する。
+Bak et al. (2013) はDTU 10MW参照タービンの設計にあたり、幾何スケーリングの背景（Mass ~ Diameter^3 の古典的関係）を紹介した [3]。Fingersh et al. (2006) はNRELの風車設計コスト・スケーリングモデルにおいて、ブレード質量のスケーリング則としてbaseline = 0.1452 × R^2.9158、advanced = 0.4948 × R^2.53 per blade を提示した [15]。Bak et al. (2013) もglass fiber: Mass = 0.0023 × Length^2.17、carbon fiber: Mass = 9×10^-5 × Length^2.95 を報告している [3]。本研究ではブレード質量密度のスケーリング指数として**λ_R^2.3**を採用した。これはFingersh (2006) とBak (2013) の報告値の範囲内の経験的選択（glass fiber設計とカーボン強化設計の中間的想定）であり、特定の文献から導出された値ではない点に注意する（§5.4 Limitation 1参照）。断面剛性はR^4でスケーリングする経験則と合わせ、これらが広く用いられている。ただし、翼型データの機種固有性（メーカー独自設計で非公開の場合が多い）がスケーリング精度の主要な不確実性要因となり、幾何スケーリングのみでは動的応答の精密な再現に限界がある。本研究はこの限界を前提とし、スケーリングモデルの主張範囲を相対比較に限定する。
 
 ### 2.3 SCADA-Based Fatigue Monitoring
 
-SCADAベースの風車状態監視はTautz-Weinert & Watson (2017) [4] がレビューしている。SCADAからDELを推定するアプローチは、DELマトリクスの機種依存性とTI計測精度の問題から限定的である。Vera-Tudela & Kühn (2017) [21] はSCADA信号からの疲労荷重予測を実証し、Dimitrov et al. (2015) [13] は乱流強度が荷重に与える影響を定量化した。Colone et al. (2018) [12] はSCADAと空力シミュレーションの統合パイプラインを提案し、TI算出方法論の差異がDEL推定に大きく影響することを報告した。Herp et al. (2018) [22] はベイズ推定による故障予測を試みている。IEA Wind Task 42（寿命延長）[20] では、SCADAベースの荷重評価が寿命延長判断の重要な入力とされており、本研究はこの文脈に位置づけられる。本研究の知見（bin近似 vs. 直接計測で4倍の差）はColone et al.の指摘を実データで裏付ける。
+SCADAベースの風車状態監視はTautz-Weinert & Watson (2017) [4] がレビューしている。SCADAからDELを推定するアプローチは、DELマトリクスの機種依存性とTI計測精度の問題から限定的である。Vera-Tudela & Kühn (2017) [20] はSCADA信号からの疲労荷重予測を実証し、Dimitrov et al. (2015) [12] は乱流強度が荷重に与える影響を定量化した。Colone (2018) [11] は wind farm scale で運用 SCADA（pitch alarm log）と aeroelastic simulation を組み合わせた fatigue load mapping の枠組みをPCE surrogate modelで構築し、turbulence と wake angle が blade root flapwise DEL の主要 driver であることをSobol感度解析で示した。Herp et al. (2018) [21] はベイズ推定による故障予測を試みている。DTU 主導の EUDP LifeWind project (Natarajan et al. 2020) [19] は、SCADA + aeroelastic + ML を組み合わせた寿命延長評価の体系化を行い、策定中の IEC 61400-28 標準への入力資料となっている。本研究は同方法論的文脈に位置づけられる。
 
 ### 2.4 Penmanshiel Wind Farm Dataset
 
@@ -152,7 +154,7 @@ Table 1に基準シミュレーション設定を示す。
 
 ### 3.2 Geometric Scaling: NREL 5MW → Senvion MM82
 
-NREL 5MW参照タービン（R=63 m, P=5 MW, HH=87.6 m）からSenvion MM82（R=41 m, P=2.05 MW, HH=59 m）への幾何スケーリングを実施した。Table 2にスケーリング係数を示す。
+NREL 5MW参照タービン（R=63 m, P=5 MW, Tower top/TurbSim RefHt=87.6 m, Hub Height=90 m）からSenvion MM82（R=41 m, P=2.05 MW, HH=59 m）への幾何スケーリングを実施した。Jonkman et al. (2009) [2] のTable 1-1ではNREL 5MWのHub Heightは90 mと定義されており、87.6 mはtower top（yaw bearing）高さである。本研究ではOpenFASTのTowerHt入力およびTurbSim RefHtに87.6 mを採用し、scaling係数 λ_H = 59/87.6 を用いた。Table 2にスケーリング係数を示す。
 
 **Table 2: Geometric Scaling Parameters**
 
@@ -195,12 +197,14 @@ DEL = (Σ(n_i × ΔS_i^m) / N_eq)^(1/m)
 | Parameter | Value |
 |---|---|
 | Channel | RootMyb1 (blade root flapwise moment) |
-| m (S-N exponent) | 10 (GFRP; DNVGL-ST-0376 [18], DOE/MSU database [19]) |
+| m (S-N exponent) | 10 (GFRP; DNVGL-ST-0376 [17]）* |
 | T_eq | 600 s |
 | N_eq | 1 Hz × T_eq = 600 cycles* |
 | Transient removal | First 60 s skipped |
 
-*N_eq (equivalent cycle count) is the product of an assumed reference frequency (1 Hz) and the equivalent time period T_eq = 600 s, yielding N_eq = 600 equivalent cycles per simulation. This convention follows Hayman (2012) [10] and ensures that DEL values are normalized to a consistent reference cycle count across all simulations.
+*N_eq (equivalent cycle count) is the product of an assumed reference frequency (1 Hz) and the equivalent time period T_eq = 600 s, yielding N_eq = 600 equivalent cycles per simulation. The DEL normalization framework (the structure DEL = (Σ n_i ΔS_i^m / N_eq)^(1/m), where N_eq corresponds to f^eq × T_j in Hayman (2012) [10] Eq. 26) follows Hayman (2012). The specific values f^eq = 1 Hz and T_eq = 600 s are conventional choices consistent with the 10-minute simulation duration standardized in IEC 61400-1:2019 [7], and ensure that DEL values are normalized to a consistent reference cycle count across all simulations.
+
+**S-N exponent m = 10 の根拠**: GFRP（glass fiber reinforced polymer）風車ブレードの疲労設計では、m = 10 が慣用的に採用される。本研究では DNVGL-ST-0376 [17] が風車ブレードの疲労評価に推奨する m = 10 をそのまま採用する。実験的支持として、Mandell & Samborsky (1997) [18] の DOE/MSU データベースは GFRP の "best-case fiberglass response" を semi-log 表現 S/S₀ = 1 − b·log N（同 [18] Eq. 6）における fatigue coefficient **b = 0.10** と報告している（同 [18] Fig. 13(b), Fig. 18, Fig. 24、および繊維含有率 30–42% 帯の D155B / D092D / A130C 等で b ≈ 0.090–0.108 を実測）。同データベースの log-log 表現 S/S₀ = B·N^(−1/n)（同 [18] Eq. 7）では、R = 0.1 の longitudinal データに対し n = 11.6（10³–10⁸ cycles, [18] Table 12）と報告される。両表現は数学的に厳密に等価ではないが、いずれも DNVGL-ST-0376 推奨値 m = 10 と同等のオーダーにあり、本研究の m = 10 採用と整合する。
 
 初期解析で使用した簡易Rainflow（ハーフサイクルカウント）との比較を§4.1で報告する。
 
@@ -222,13 +226,13 @@ V_norm および TI_norm は min-max 正規化により [0, 1] にスケーリ�
 |---|---|
 | Data source | Zenodo DOI: 10.5281/zenodo.5946808 (CC-BY 4.0) |
 | Turbine model | Senvion MM82 (2.05 MW, D=82 m, HH=59 m) |
-| Number of turbines | 14 (this study: T01–T07)* |
+| Number of turbines | 14 (numbered T01–T15, no T03; this study: 5 turbines)* |
 | Time resolution | 10-min averages |
 | Period | 2016–2021 (main analysis: 2020 full year) |
 | Location | Penmanshiel, Scotland (onshore) |
 | Commissioning | September 2016 |
 
-*T01–T07 were selected based on data completeness: these seven turbines had the highest ratio of valid 10-min records (after QC filtering) across the 2016–2021 period. The remaining seven turbines (T08–T14) had substantially higher missing-data rates and were excluded to ensure consistent monthly DEL estimation.
+*The farm's turbines are numbered T01–T15 with no T03 (14 units; Zenodo static metadata). The fleet analysis (§4.6) uses the five turbines with complete 2020 monthly coverage after QC filtering (T01, T02, T04, T05, T06). T07 (6 months) and T11 (3 months) had only partial 2020 coverage in the processed dataset and were excluded from annual inter-turbine statistics; the remaining turbines had substantially higher missing-data rates and were excluded to ensure consistent monthly DEL estimation.
 
 TIはIEC 61400-1:2019 [7] 準拠の10分値直接計測:
 
@@ -269,6 +273,8 @@ ASTM E1049系標準Rainflow（4点法）と簡易Rainflow（ハーフサイク�
 | Mean error (simple vs. standard) | **42%** (simple systematically underestimates) |
 | Maximum error | **76%** (V=4 m/s, TI=12%) |
 | Error trend | Larger at low wind speeds (V=4–8 m/s: 50–76%), smaller at high speeds (V≥12 m/s: 12–40%) |
+
+*Error is defined as |DEL_standard − DEL_simple| / DEL_standard × 100% (40 single-seed cases). A mean error of 42% relative to the standard value corresponds to the standard implementation yielding on average ~1.7× the simple-count DEL.*
 
 簡易版のハーフサイクルカウントは、低TSR域（V=4〜8 m/s）での非定常成分を大幅に過小評価する。**高精度疲労評価には標準Rainflow実装が必須**である。
 
@@ -427,7 +433,7 @@ MM82 DELマトリクスを適用した月次DEL推定結果をTable 12に示す�
 | Nov | 9.0 | 0.131 | 1,551 |
 | Dec | 8.7 | 0.121 | 1,403 |
 
-年間平均DEL: 1,497〜1,742 kN·m（タービン間幅）。ピーク月: 2月（冬季北海低気圧による強風、最大2,356 kN·m）。
+年間平均DEL: 1,497〜1,539 kN·m（2020年通年データを持つ5台のタービン間幅）。ピーク月: 2月（冬季北海低気圧による強風、最大2,356 kN·m = T01）。
 
 > Figure 6: Penmanshiel monthly mean DEL (MM82 basis), 2020  
 > → `fig_penmanshiel_monthly_del_mm82.png`
@@ -458,6 +464,8 @@ MM82 DELマトリクスを適用した月次DEL推定結果をTable 12に示す�
 | 2019 | Full year | 8.08 | 0.130 | 1,351 | 0.450 |
 | 2020 | Full year | 8.66 | 0.133 | 1,507 | 0.451 |
 | 2021 | Jan–Jun | 7.96 | 0.133 | 1,340 | 0.454 |
+
+*Notes*: (a) 2016年のデータは6月から存在するが、営業運転開始日（Commercial Operations Date）は2016-09-01であり（Zenodo static metadata）、6〜8月は営業運転開始前の期間を含む。(b) 本表のT01 2020年値（1,507 kN·m）はTable 13の同年値（1,503 kN·m）と0.3%異なる。両者は別スクリプト（縦断解析 vs フリート解析）による集計であり、QC通過レコードの微差に起因する。
 
 2017→2020のDEL増加（+182 kN·m, +13.7%）はV_mean増加（8.32→8.66 m/s）とTI_med増加（0.119→0.133）に連動している。2021年はV_meanが低下するとDELも1,340 kN·m（2017水準）に戻った。
 
@@ -506,13 +514,14 @@ Penmanshielの直接計測TI（中央値0.133〜0.144）は、bin近似TI（~0.0
 ### 5.4 Limitations
 
 1. **翼型プロキシによる空力近似**: MM82の翼型データは非公開であり、NREL 5MWの翼型をプロキシとして使用した。本モデル最大の不確実性要因であり、DEL絶対値の精度、w_V/w_TI較正（§4.5）、高TI条件での相対比較精度（§5.1）に影響する。このため主張範囲を相対比較に限定した
-2. **DLC 1.2のみ**: 疲労設計には複数DLC（1.1, 1.2, 1.3等）の重み付き合成が必要。本研究はDLC 1.2単独
-3. **単一サイト**: Penmanshielの結果を他サイトに一般化するには追加検証が必要
-4. **線形重みモデルとbilinear補間**: DEL-V関係は非線形であるが、支配因子比率の把握を目的に線形近似を使用した（R² = 0.926–0.943）。DELマトリクスの8×5グリッドからのbilinear補間もグリッド端部で精度が低下する。いずれも局所的な予測精度に限界がある
-5. **スケーリング比率の風速依存性**: 全40条件のDEL比率は平均0.263（理論0.276に対し−4.6%）だが、V=4–6 m/sでは散らばりが大きい（0.208–0.326）。低風速域での相対比較精度は限定的である（§4.4 Table 8b）
-6. **縦断分析の制約**: 補修履歴が未入手のため、Cp_maxに劣化が見られない原因として補修実施の可能性を排除できない。TI_medの経年増加（0.119→0.133）の原因も気象記録との照合が未実施（§5.3で議論）
-7. **構造応答の線形性仮定**: スケーリング則は線形弾性範囲を仮定。非線形挙動は考慮していない
-8. **MM82長期DEL未算出**: MM82プロキシでは翼型近似の不確実性が長期積算に蓄積するため、意図的に未算出とした。実測荷重との照合が得られた段階で実施すべき課題である
+2. **スケーリング指数λ_R^2.3の経験的選択**: ブレード質量密度のスケーリング指数として2.3を採用したが、これはFingersh (2006) のbaseline 2.9158 / advanced 2.53、Bak (2013) のglass 2.17 / carbon 2.95 の範囲内での経験的選択であり、特定の一次文献から直接導出された値ではない。採用値（指数2.3相当、比率0.372）はこの範囲の中央付近に位置する。この選択は本研究の数値結果（DEL比率0.263）に影響を与えているが、相対比較を主張範囲とする本研究においては許容可能な不確実性と判断した
+3. **DLC 1.2のみ**: 疲労設計には複数DLC（1.1, 1.2, 1.3等）の重み付き合成が必要。本研究はDLC 1.2単独
+4. **単一サイト**: Penmanshielの結果を他サイトに一般化するには追加検証が必要
+5. **線形重みモデルとbilinear補間**: DEL-V関係は非線形であるが、支配因子比率の把握を目的に線形近似を使用した（R² = 0.926–0.943）。DELマトリクスの8×5グリッドからのbilinear補間もグリッド端部で精度が低下する。いずれも局所的な予測精度に限界がある
+6. **スケーリング比率の風速依存性**: 全40条件のDEL比率は平均0.263（理論0.276に対し−4.6%）だが、V=4–6 m/sでは散らばりが大きい（0.208–0.326）。低風速域での相対比較精度は限定的である（§4.4 Table 8b）
+7. **縦断分析の制約**: 補修履歴が未入手のため、Cp_maxに劣化が見られない原因として補修実施の可能性を排除できない。TI_medの経年増加（0.119→0.133）の原因も気象記録との照合が未実施（§5.3で議論）
+8. **構造応答の線形性仮定**: スケーリング則は線形弾性範囲を仮定。非線形挙動は考慮していない
+9. **MM82長期DEL未算出**: MM82プロキシでは翼型近似の不確実性が長期積算に蓄積するため、意図的に未算出とした。実測荷重との照合が得られた段階で実施すべき課題である
 
 ---
 
@@ -551,11 +560,11 @@ MM82スケーリング入力ファイル（ElastoDyn, AeroDyn, ServoDyn）の生
 主な成果:
 
 1. **スケーリング妥当性**: MM82プロキシモデルのDEL比率（0.258）は理論予測（0.276）と6.5%の誤差で整合し、相対比較に有効な精度を持つ
-2. **Rainflow実装精度**: 標準Rainflow（ASTM E1049）は簡易版に対し平均42%高いDELを算出。高精度疲労評価には標準実装が必須
-3. **サイトDEL推定**: Penmanshielの年間平均DELは1,497〜1,742 kN·m（MM82基準）。冬季（2月）にピークを示す季節性を確認
+2. **Rainflow実装精度**: 簡易Rainflow（ハーフサイクルカウント）は標準Rainflow（ASTM E1049）に対しDELを平均42%過小評価する（標準値基準、40ケース）。高精度疲労評価には標準実装が必須
+3. **サイトDEL推定**: Penmanshielの年間平均DELは1,497〜1,539 kN·m（2020年通年5台, MM82基準）。冬季（2月）にピークを示す季節性を確認
 4. **縦断分析**: 6年間のDEL増加（+13.7%）は風況変動が主因。公開SCADA指標の範囲内ではCp_maxの低下傾向は未確認。劣化検出には風況正規化が前提条件
 
-なお、MM82プロキシモデルの長期DELは翼型近似の不確実性蓄積を考慮し、意図的に未算出とした（§5.4, Limitation 8）。本基盤は荷重環境の定量化を目的としており、劣化の直接検出は対象外である。点検画像・補修履歴との統合による劣化進行リスク評価を次の研究段階として位置づける。
+なお、MM82プロキシモデルの長期DELは翼型近似の不確実性蓄積を考慮し、意図的に未算出とした（§5.4, Limitation 9）。本基盤は荷重環境の定量化を目的としており、劣化の直接検出は対象外である。点検画像・補修履歴との統合による劣化進行リスク評価を次の研究段階として位置づける。
 
 ---
 
@@ -716,31 +725,29 @@ DLC 2.2は高風速域（V ≥ 16 m/s）でDLC 2.1比 ×1.4〜2.1の非対称荷
 
 [10] Hayman, G.J. (2012). MLife Theory Manual for Version 1.00. NREL/TP-xxxx. National Renewable Energy Laboratory.
 
-[11] Bir, G. and Jonkman, J. (2007). Aeroelastic Instabilities of Large Offshore and Onshore Wind Turbines. Journal of Physics: Conference Series, 75, 012069.
+[11] Colone, L. (2018). Cost-Effective Strategies for Wind Farm O&M: Topics in Structural Reliability, Load Analysis, Predictive Maintenance and Decision Making. PhD thesis, DTU Wind Energy PhD-0088. Technical University of Denmark. DOI: 10.11581/DTU:00000033.
 
-[12] Colone, L., Natarajan, A., and Dimitrov, N. (2018). Impact of turbulence induced loads and wave kinematic models on fatigue reliability estimates of offshore wind turbine monopiles. Ocean Engineering, 155, 295–309.
+[12] Dimitrov, N., Natarajan, A., and Kelly, M. (2015). Model of wind shear conditional on turbulence and its impact on wind turbine loads. Wind Energy, 18(11), 1917–1931.
 
-[13] Dimitrov, N., Natarajan, A., and Kelly, M. (2015). Model of wind shear conditional on turbulence and its impact on wind turbine loads. Wind Energy, 18(11), 1917–1931.
+[13] Matsuishi, M. and Endo, T. (1968). Fatigue of metals subjected to varying stress. Japan Society of Mechanical Engineers, Fukuoka, Japan.
 
-[14] Matsuishi, M. and Endo, T. (1968). Fatigue of metals subjected to varying stress. Japan Society of Mechanical Engineers, Fukuoka, Japan.
+[14] Downing, S.D. and Socie, D.F. (1982). Simple rainflow counting algorithms. International Journal of Fatigue, 4(1), 31–40.
 
-[15] Downing, S.D. and Socie, D.F. (1982). Simple rainflow counting algorithms. International Journal of Fatigue, 4(1), 31–40.
+[15] Fingersh, L., Hand, M., and Laxson, A. (2006). Wind Turbine Design Cost and Scaling Model. NREL/TP-500-40566. National Renewable Energy Laboratory.
 
-[16] Fingersh, L., Hand, M., and Laxson, A. (2006). Wind Turbine Design Cost and Scaling Model. NREL/TP-500-40566. National Renewable Energy Laboratory.
+[16] Robertson, A.N., et al. (2017). OC5 Project Phase II: Validation of Global Loads of the DeepCwind Floating Semisubmersible Wind Turbine. Energy Procedia, 137, 38–57. DOI: 10.1016/j.egypro.2017.10.333
 
-[17] Robertson, A.N., et al. (2017). OC5 Project Phase II: Validation of Global Loads of the DeepCwind Floating Semisubmersible Wind Turbine. Energy Procedia, 137, 38–57.
+[17] DNV GL (2015). DNVGL-ST-0376: Rotor blades for wind turbines. DNV GL AS.
 
-[18] DNV GL (2015). DNVGL-ST-0376: Rotor blades for wind turbines. DNV GL AS.
+[18] Mandell, J.F. and Samborsky, D.D. (1997). DOE/MSU Composite Material Fatigue Database: Test Methods, Materials, and Analysis. SAND97-3002. Sandia National Laboratories. DOI: 10.2172/578635.
 
-[19] Mandell, J.F. and Samborsky, D.D. (1997). DOE/MSU Composite Material Fatigue Database: Test Methods, Materials, and Analysis. SAND97-3002. Sandia National Laboratories. DOI: 10.2172/578635.
+[19] Natarajan, A., Dimitrov, N.K., William Peter, D.R., Bergami, L., Madsen, J., Olesen, N., et al. (2020). Demonstration of Requirements for Life Extension of Wind Turbines Beyond Their Design Life. DTU Wind Energy Report No. E-0196.
 
-[20] Natarajan, A., Dimitrov, N.K., William Peter, D.R., Bergami, L., Madsen, J., Olesen, N., et al. (2020). Demonstration of Requirements for Life Extension of Wind Turbines Beyond Their Design Life. DTU Wind Energy Report No. E-0196.
+[20] Vera-Tudela, L. and Kühn, M. (2017). Analysing wind turbine fatigue load prediction: The impact of wind farm flow conditions. Renewable Energy, 107, 352–360. DOI: 10.1016/j.renene.2017.01.065.
 
-[21] Vera-Tudela, L. and Kühn, M. (2017). Analysing wind turbine fatigue load prediction: The impact of wind farm flow conditions. Renewable Energy, 107, 352–360. DOI: 10.1016/j.renene.2017.01.065.
+[21] Herp, J., Ramezani, M.H., Bach-Andersen, M., Pedersen, N.L., and Nadimi, E.S. (2018). Bayesian state prediction of wind turbine bearing failure. Renewable Energy, 116, 164–172.
 
-[22] Herp, J., Ramezani, M.H., Bach-Andersen, M., Pedersen, N.L., and Nadimi, E.S. (2018). Bayesian state prediction of wind turbine bearing failure. Renewable Energy, 116, 164–172.
-
-[23] Python `rainflow` library, version 3.2.0. PyPI. https://pypi.org/project/rainflow/
+[22] Python `rainflow` library, version 3.2.0. PyPI. https://pypi.org/project/rainflow/
 
 ---
 
@@ -755,5 +762,14 @@ DLC 2.2は高風速域（V ≥ 16 m/s）でDLC 2.1比 ×1.4〜2.1の非対称荷
 | v5.0 | 2026-04-08 | 査読耐性強化: (1)§4.4スケーリング検証の単一ケース限界を明記＋統計的検証を今後の課題化、(2)参考文献[13]–[23]追加（Rainflow原著・スケーリングモデル原典・S-N曲線根拠・IEA Task 42・OpenFAST検証等）＋§2に引用統合、(3)§1.4新規性論証を「統合により初めて可能になる成果」で具体化、(4)§1.3 Obj.3から劣化検出含意を除去、(5)§3.7 QCフィルタ閾値の根拠追加、(6)IEC 61400-1:2019表記統一＋6シードを「minimum requirement」に修正、(7)§4.7 Cp_maxスコープ外注記追加、(8)§5.4 Limitations再構成：翼型プロキシ一本化・線形重みモデル限界・bilinear補間粗さ・スケーリング検証統計不足を追加 |
 | v6.0 | 2026-04-10 | 構成整理・圧縮: (1)タイトル確定（Site-Specific...Case Study）、(2)Abstract→4ブロック構成に再整理、(3)§1.4圧縮（後半の新規性説明を3文に）、(4)§2.3圧縮（冗長表現削除）、(5)§4.4単一ケース限界の記述圧縮、(6)§4.5 R²注記圧縮、(7)§4.6.3簡潔化（結論→表の順に）、(8)§4.7 Cp_max注記圧縮、(9)Limitations 10→8項目（#4に線形モデル+補間統合、#6に補修履歴+TI_med統合）、(10)Conclusion Limitation番号整合 |
 | v7.0 | 2026-04-10 | スケーリング検証の統計的強化: §4.4にTable 8b追加（全40条件のDEL比率統計: mean=0.263, std=0.020, 理論比からの偏差−4.6%）。V=4-6 m/sの散らばりと V≥8 m/sの安定性を定量化。Limitation #5を「統計的不足」から「風速依存性」に更新（n=1→n=40） |
+| v8.0 | 2026-04-14 | 引用整合性修正（PDF精読による発見）: (1)§1.1 Malik 2025引用文脈修正（疲労荷重×エロージョン複合→AEP検出の文脈に訂正）、(2)§2.2 Fingersh/Bakスケーリング指数訂正（Fingersh 2006: R^2.9158/2.53、Bak 2013: Length^2.17/2.95を明記）、(3)§3.4 Mandell 1997からのm=10導出を明示（b=0.10→n=10の変換経路）、(4)§3.2 HH曖昧性解消（Jonkman Table 1-1のHub Height=90m、TowerHt=87.6mを明確化）、(5)§5.4 Limitationに「スケーリング指数λ_R^2.3の経験的選択」を追加（#2として挿入、以降番号シフト） |
+| v9.0 | 2026-04-26 | 引用ハルシネーション修正: (1)§2.2 Bir & Jonkman 2007 [11]の引用を削除（PDF全頁精読の結果、論文主題はNREL 5MW aeroelastic stability解析であり、引用文「スケーリング則の限界」「翼型空力データの機種固有性」「幾何スケーリング限界」は論文中に該当議論なしと確認）、(2)文章を一般論として再記述、(3)参考文献[12]–[23]を[11]–[22]に繰り上げ＋本文中の引用番号を全て更新（[12]→[11], [13]→[12], ... [23]→[22]）。さらに(4)§参考文献[16]Robertson 2017 DOI追加（10.1016/j.egypro.2017.10.333、Crossref API検証で旧DOI .10.371は別論文を指していたと判明） |
+| v9.1 | 2026-04-26 | Robertson 2017 引用文の弱体化（全頁精読による発見）: §2の「OpenFASTの妥当性はOC5プロジェクト等の第三者検証で確認されている」を「OpenFASTを含む複数の風力工学ツールはOC5プロジェクト等の第三者比較検証に参加しており、コード間の差異と実験との整合性が継続的に評価されている」に修正。OC5 Phase IIはfloating semisubmersibleが対象でonshore風車とは適用条件が異なる旨を併記。論文の実態は10-21%の過小評価（妥当性確認ではなく課題発見）であるため誇張表現を回避 |
+| v9.2 | 2026-04-26 | §3.4「m = 10 の根拠」表現精緻化（Mandell 1997 pp.1-100 主張駆動精読による発見）: 旧版「Mandell 1997 から導出した m=10（b=0.10 → n=10 の変換経路）」「n = 1/b = 10 に相当する（b = 0.10〜0.14、n = 7〜10）」という単純逆数変換は Mandell 1997 内に直接的な変換式が存在しないことを反映し削除。新版では (1) DNVGL-ST-0376 を直接の出典として明確化、(2) Mandell 1997 [18] の b = 0.10 を独立した実験的支持として位置づけ（Fig. 13(b), Fig. 18, Fig. 24 と繊維含有率 30-42% 帯の D155B/D092D/A130C 実測値 b ≈ 0.090-0.108 を引用根拠として明示）、(3) Mandell の log-log 表現（Eq. 7）における実測 n = 11.6（Table 12, R=0.1, 10³-10⁸ cycles）も併記、(4) 両表現が数学的に等価ではないが m = 10 と同等のオーダーにあると明記 |
+| v9.3 | 2026-04-26 | Hayman 2012 全頁精読による §2/§3.4 表現精緻化: (1)§2の「Hayman (2012) はMLifeツールによるDEL算出手法（ASTM E1049準拠Rainflow、等価サイクル数正規化）を体系化した」を「Hayman (2012) はMLifeツールによるDEL算出手法（Downing & Socie (1982) のone-pass Rainflow計数、等価サイクル数正規化）を体系化した」に修正し、ASTM E1049-85 を別文で「Downing & Socie アルゴリズムを業界標準として整理した規格」として分離記述。理由：Hayman 2012 はASTM E1049ではなく明示的に Downing & Socie (1982) を引用しており、ASTM E1049 が Hayman 2012 から直接来ているかのような誤解を回避。(2)§3.4 の「This convention follows Hayman (2012)」を「The DEL normalization framework (...) follows Hayman (2012). The specific values f^eq = 1 Hz and T_eq = 600 s are conventional choices consistent with the 10-minute simulation duration standardized in IEC 61400-1:2019」に修正。理由：Hayman 2012 内では f^eq, T_j は抽象パラメータとして定義されているのみで、N_eq=600 という具体値は論文内に存在しない。フレームワーク準拠と具体値選択の出典を分離 |
+| v9.4 | 2026-04-27 | Colone 2018 全179頁完全精読による Reference [11] 差し替え＋引用文修正: (1)Reference [11] を Article I（Ocean Engineering 155:295-309, monopile fatigue reliability + IEC turbulence percentile + wave kinematic models）から PhD thesis 全体（DTU Wind Energy PhD-0088, DOI: 10.11581/DTU:00000033）に変更。理由：Article I は MC + HAWC2 aeroelastic simulation のみで SCADA データを使用せず、bin-averaged vs 直接計測 TI 比較も行っていないため、Paper 2 line 99/126 の主張の出典として不適切（引用文脈ハルシネーション）。PhD thesis 全体は Chapter 3 で wind farm scale の SCADA（pitch alarm log）と aeroelastic simulation の組み合わせによる fatigue load mapping を扱っており、line 126 の趣旨と整合する。(2)§2.3 line 126：「Colone et al. (2018) [11] はSCADAと空力シミュレーションの統合パイプラインを提案し、TI算出方法論の差異がDEL推定に大きく影響することを報告した」を「Colone (2018) [11] は wind farm scale で運用 SCADA（pitch alarm log）と aeroelastic simulation を組み合わせた fatigue load mapping の枠組みを PCE surrogate model で構築し、turbulence と wake angle が blade root flapwise DEL の主要 driver であることを Sobol 感度解析で示した」に修正。これは PhD thesis Chapter 3（§3.6 Wind farm load mapping）の実態（PCE surrogate, m=12 GFRP, DWM, Sobol indexes for blade root flapwise）と完全整合。(3)§2.3 末尾の「本研究の知見（bin近似 vs. 直接計測で4倍の差）はColone et al.の指摘を実データで裏付ける」を削除。Article I/PhD thesis ともに bin-averaged vs 直接計測比較は扱っていない。(4)§1.4 line 99：「既存文献の指摘（Colone et al. 2018 [11]）を裏付け」を「既存文献での同種指摘の有無は第10バッチで Vera-Tudela & Kühn 2017 / Dimitrov et al. 2015 を全頁精読後に確定」に書き換え。代替引用先は両論文取得後に確定 |
+| v9.5 | 2026-04-27 | Natarajan 2020 LifeWind 全110頁完全精読による §2.3 line 126 のプロジェクト名ハルシネーション修正: 旧版「IEA Wind Task 42（寿命延長）[19] では、SCADAベースの荷重評価が寿命延長判断の重要な入力とされており、本研究はこの文脈に位置づけられる」を「DTU 主導の EUDP LifeWind project (Natarajan et al. 2020) [19] は、SCADA + aeroelastic + ML を組み合わせた寿命延長評価の体系化を行い、策定中の IEC 61400-28 標準への入力資料となっている。本研究は同方法論的文脈に位置づけられる」に修正。理由：参考文献 [19] (DTU Wind Energy E-0196) は Project no 64017-05114「Energy Technology Development and Demonstration Programme (EUDP)」資金による LifeWind project の成果報告書であり、IEA Wind Task 42 の output ではない（全110頁で IEA Wind Task 42 への言及なし、§5.3 で著者自身「The major EUDP Lifewind contributions」と明示）。書誌情報（著者・タイトル・年・出版者）は正しいが、所属プロジェクト名の誤帰属は Bir & Jonkman 2007 / Pandit 2023 / Colone 2018 と同種の引用文脈ハルシネーションパターン。修正により方法論的特徴（SCADA + aeroelastic + ML）と IEC 61400-28（策定中の寿命延長標準）への接続を明示。参考文献 [19] 自体は変更なし。Paper 1/Paper 2 v9.5 修正案ドキュメント（tools/reference_audit/batch10_round1_revision_proposals.md）の修正案③-案B を採用 |
+| v9.6 | 2026-07-02 | 内部整合性監査（Paper 1-3 全文精査）に基づく機械的修正: (1) ヘッダのバージョン表記を v9.6 に統一（旧: ステータス行 v7.0 / 最終更新行 v9.4 / 改訂履歴・フッタ v9.5 の三重表記が残存していた）。(2) §2.1 の編集プレースホルダ「ASTM E1049-85 [規格番号は§3.4で参照]」を正規の引用番号 [6] に置換。(3) §1.4 の Vera-Tudela / Dimitrov 注記を精読進捗（Vera-Tudela 2026-06-11 精読完了・TI 方法論比較は扱われていないという負の発見）を反映した記述に更新。(4) §7 Conclusion の MM82 長期DEL 参照を「Limitation 8」→「Limitation 9」に修正（v8.0 での項目 2 挿入による番号シフトが Conclusion に未反映だった）。**非機械的な数値矛盾（Abstract/Conclusion の年間 DEL 1,497–1,742 vs Table 13 の 1,497–1,539、Table 4 の T01–T07 宣言 vs Table 12/13 の 5 台、Table 5 誤差の分母未定義、Table 13 vs 14 の T01 2020 値 1,503/1,507、就役 9 月 vs 2016 Jun–Dec データ）は実験ログ・Zenodo メタデータ照合が必要なため未修正**。詳細は `tools/reference_audit/paper123_consistency_audit_2026-07-02.md` |
+| v9.7 | 2026-07-02 | 実データ照合による数値矛盾の解決（監査記録 A-6〜A-8, B-1 の事実確定分を適用）: (1) **年間DELレンジ 1,497〜1,742 → 1,497〜1,539**（Abstract・§4.6.2・Conclusion の3箇所）：phase3_scada/penmanshiel_monthly_del.csv の照合により、1,742 の正体は **T11 の3ヶ月分断片データの平均（1,741.9）** と確定。T11 は宣言されたタービンセット外で年間統計として不成立のため除外。5台（T01/T02/T04/T05/T06、各12ヶ月）の実レンジ 1,497.3〜1,539.2 を採用（Table 13 と整合）。(2) **タービン記述の訂正**：Zenodo static metadata により Penmanshiel は **T01–T15 の番号付けで T03 欠番**（14台）と確認。Table 4 の「this study: T01–T07」を「5 turbines」に訂正し、脚注で T07（6ヶ月）・T11（3ヶ月）の部分データ除外を明記。Abstract の「7台」→「5台」。(3) **Rainflow 誤差の方向修正**：算出スクリプト（05ms_extract_del_multiseed.py line 109）で誤差 = \|std−simple\|/std（**分母=standard**）と確定（mean 42.0%・max 75.7% は CSV 再計算と一致）。旧 Conclusion「標準は簡易版に対し平均42%高い」は分母の取り違え（正: 簡易版が標準を42%過小評価 = 標準は簡易比約1.7倍）のため修正。Table 5 に誤差定義の注記を追加。(4) **Table 14 に脚注追加**：(a) 2016年6〜8月は営業運転開始日（2016-09-01、static metadata で確認）以前を含む、(b) T01 2020 の 1,507（縦断スクリプト）vs 1,503（フリートスクリプト）は別集計経路による0.3%差。**新発見（未修正・判断待ち）**：§3.7 は「各10分レコードに bilinear 補間→月次集計」と記述するが、実装は**月次集計点（V_mean, TI_med）での一回補間**（T01 1月 1,904.5・2月 2,355.5 が手計算補間と完全一致）。DEL は V に凸なので Jensen の不等式により月次点補間は mean(DEL) を過小評価しうる。記述修正か再計算かは himinさん 判断待ち |
 
-*Paper 2 Draft v7.0 | 2026-04-10 | Author: himin | Research Assistant: Claude Code*
+*Paper 2 Draft v9.7 | 2026-07-02 | Author: himin | Research Assistant: Claude Code*

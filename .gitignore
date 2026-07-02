@@ -26,3 +26,11 @@ phase5_openfast_shm/openfast_cases/cases*/
 phase5_openfast_shm/openfast_cases/template*/
 phase5_openfast_shm/openfast_cases/wind*/
 phase5_openfast_shm/r-test/
+
+# 著作権のある参考文献PDF（個人利用のみ、git管理対象外）
+docs/references/**/*.pdf
+docs/references/**/*.PDF
+
+# 論文PDF（著作権・容量のためGit管理対象外）
+docs/references/
+data/PDF/
