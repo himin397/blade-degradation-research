@@ -42,7 +42,7 @@ def fig_mm82_heatmap():
 
 # ── 2. Penmanshiel Monthly DEL (MM82 basis) ─────────────
 def fig_penmanshiel_monthly_mm82():
-    df = pd.read_csv(SCADA_DIR / "penmanshiel_monthly_del.csv")
+    df = pd.read_csv(SCADA_DIR / "penmanshiel_monthly_del_v2.csv")  # v10.0: per-record interpolation
     # Filter to main turbines (full year 2020 data)
     main_turbines = ["T01", "T02", "T04", "T05", "T06"]
     df = df[df["turbine_id"].isin(main_turbines)]
@@ -65,7 +65,7 @@ def fig_penmanshiel_monthly_mm82():
     ax.set_xticks(range(1, 13))
     ax.set_xticklabels(months)
     ax.set_ylabel("Estimated DEL (kN·m)")
-    ax.set_title("Penmanshiel Wind Farm — Monthly Mean DEL (MM82 Proxy)\n5 Turbines (T01-T06), 2020, Error bars = inter-turbine σ")
+    ax.set_title("Penmanshiel Wind Farm — Monthly Mean DEL (MM82 Proxy, per-record interpolation)\n5 Turbines (T01-T06), 2020, Error bars = inter-turbine σ")
     ax.set_ylim(0, ax.get_ylim()[1] * 1.15)
 
     # Add value labels
@@ -122,7 +122,7 @@ def fig_scaling_comparison():
 
 # ── 4. Longitudinal DEL + Cp Combined ───────────────────
 def fig_longitudinal_combined():
-    del_df = pd.read_csv(SCADA_DIR / "longitudinal_del_T01.csv")
+    del_df = pd.read_csv(SCADA_DIR / "longitudinal_del_T01_v2.csv")  # v10.0: per-record interpolation
     ann_df = pd.read_csv(SCADA_DIR / "longitudinal_annual_summary.csv")
 
     # Annual DEL
@@ -134,7 +134,7 @@ def fig_longitudinal_combined():
     # Panel (a): Annual DEL
     ax1.bar(annual_del["year"], annual_del["DEL_annual"], color="#2196F3", alpha=0.8, width=0.6)
     ax1.set_ylabel("Annual Mean DEL (kN·m)")
-    ax1.set_title("Penmanshiel T01 — Longitudinal Trends (2016–2021)")
+    ax1.set_title("Penmanshiel T01 — Longitudinal Trends (2016–2021, per-record interpolation)")
     for _, row in annual_del.iterrows():
         ax1.text(row["year"], row["DEL_annual"] + 20, f"{row['DEL_annual']:.0f}",
                 ha="center", fontsize=9)
