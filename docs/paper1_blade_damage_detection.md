@@ -1,13 +1,13 @@
 # Paper 1: Wind Turbine Blade Surface Damage Detection and Span-wise Risk Scoring Using Drone Inspection Images with Pyramid Patch Augmentation
 
-**ステータス**: v9.6（実データ照合による数値修正：画像数 559→301、LE;CR 訓練パッチ比率 1.6%→1.2%。yolo_dataset・COCO アノテーション・実験出力との直接照合で確定）
-**最終更新**: 2026-07-02（v9.6: 実験環境の実データ（data/processed/yolo_dataset、DTU-annotations COCO JSON、experiments/exp001-004 results.csv）との照合により数値矛盾を解決。mAP 0.581/0.561 の提示方法は himinさん 判断待ち。詳細は `tools/reference_audit/paper123_consistency_audit_2026-07-02.md`）
+**ステータス**: v9.8（v9.7 = mAP 案a 適用（test 主指標化 0.38→0.56, +46%）・修正案① SAHI・B-2 脚注 → v9.8 = Codex 独立レビュー（2026-07-05）指摘の反映：評価 CSV に P/R 列追加、LE;CR 原因表現の較正、Abstract の感度分析自明性併記）
+**最終更新**: 2026-07-05（詳細は `tools/reference_audit/paper123_consistency_audit_2026-07-02.md` と `tools/reference_audit/codex_review_decisions_2026-07-05.md`）
 
 ---
 
 ## 1文主張
 
-> 公開ドローン画像のアノテーション付き301枚にピラミッドパッチ拡張付きYOLOv8nを適用し、5損傷クラス中4クラスでAP@0.5 = 0.56–0.78（mAP = 0.58, +67%）を得たが、LE;CR（訓練パッチの1.2%）はゼロ検出でありクラス不均衡が検出限界を規定する。スパン方向リスクスコア（Tip > Mid > Root）は±50%重み摂動下で8中6シナリオでランクが保存された。
+> 公開ドローン画像のアノテーション付き301枚にピラミッドパッチ拡張付きYOLOv8nを適用し、5損傷クラス中4クラスでAP@0.5 = 0.56–0.78（test mAP = 0.56、ベースライン比 +46%）を得たが、LE;CR（訓練パッチの1.2%）はゼロ検出でありクラス不均衡が検出限界を規定する。スパン方向リスクスコア（Tip > Mid > Root）は±50%重み摂動下で8中6シナリオ（実質は部位重み個別6中4、クラス重み一括2件は自明保存）でランクが保存された。
 
 ---
 
@@ -17,9 +17,9 @@ Wind turbine blade surface damage detection using drone inspection images is inc
 
 We applied YOLOv8n with pyramid patch augmentation to the 301 annotated original images of the public DTU dataset (13,050 patches after slicing and augmentation) across five damage classes. The dataset was split at the original image level (train: 212, val: 44, test: 45; seed=42) to prevent patch-level leakage; blade-level independence cannot be guaranteed with the available metadata.
 
-Pyramid patch augmentation improved mAP@0.5 from 0.35 (baseline) to 0.58 (+67%). Four of five classes achieved AP@0.5 of 0.56–0.78, while LE;CR yielded AP = 0.00 due to severe class imbalance (1.2% of training patches). The four-class mAP@0.5 (excluding LE;CR) was 0.70, reported as a supplementary indicator.
+Pyramid patch augmentation improved held-out test mAP@0.5 from 0.38 (baseline) to 0.56 (+46%); on the validation set used for model selection, the best-epoch improvement was 0.35 to 0.58 (+67%). Four of five classes achieved test AP@0.5 of 0.56–0.78, while LE;CR yielded AP = 0.00 due to severe class imbalance (1.2% of training patches). The four-class test mAP@0.5 (excluding LE;CR) was 0.70, reported as a supplementary indicator.
 
-A span-wise risk scoring scheme (Tip/Mid/Root) using practitioner-informed weights produced rankings consistent with field experience. Sensitivity analysis (±50% perturbation, 8 scenarios) confirmed rank preservation in 6 of 8 cases. Year-wise score differences reflect inspection conditions, not damage progression. The primary contribution is the end-to-end pipeline from detection outputs to region-wise risk scores; the detection backbone can be upgraded independently to improve input quality. All code, configuration, and trained weights are included as supplementary materials.
+A span-wise risk scoring scheme (Tip/Mid/Root) using practitioner-informed weights produced rankings consistent with field experience. Sensitivity analysis (±50% perturbation, 8 scenarios) confirmed rank preservation in 6 of 8 cases (4 of the 6 substantive region-weight perturbations; the two uniform class-weight scalings preserve rank trivially). Year-wise score differences reflect inspection conditions, not damage progression. The primary contribution is the end-to-end pipeline from detection outputs to region-wise risk scores; the detection backbone can be upgraded independently to improve input quality. All code, configuration, and trained weights are included as supplementary materials.
 
 ---
 
@@ -40,8 +40,8 @@ In a future inspection regime where 2D screening identifies candidates for detai
 The contributions of this paper are:
 
 - A reproducible end-to-end pipeline from raw drone images to span-wise risk scores, designed as a screening layer in a potential 2D–3D two-stage inspection framework
-- Quantitative demonstration that pyramid patch augmentation improves mAP@0.5 by 67%
-- Systematic diagnosis of LE;CR detection failure (class imbalance, not object size or evaluation methodology) and sensitivity analysis confirming risk ranking robustness (6 of 8 scenarios under ±50% perturbation)
+- Quantitative demonstration that pyramid patch augmentation improves test-set mAP@0.5 by 46% (0.38 → 0.56; validation best-epoch basis: +67%)
+- Systematic diagnosis of LE;CR detection failure (class imbalance, not object size or evaluation methodology) and sensitivity analysis confirming risk ranking robustness (6 of 8 scenarios under ±50% perturbation; 4 of 6 substantive)
 
 ---
 
@@ -57,7 +57,7 @@ Shihavuddin et al. (2019) released the publicly-available DTU Drone Inspection d
 
 Class imbalance is a well-known challenge in object detection. Focal loss (Lin et al. 2017) addresses this by down-weighting well-classified examples. Oversampling and data augmentation strategies have also been explored. In the wind energy domain, damage datasets are inherently imbalanced because certain damage types (e.g., cracks) are rarer than others (e.g., erosion). The challenge is amplified by the small size of public datasets and the inherent rarity of structurally critical damage types.
 
-Patch-based detection is standard in high-resolution industrial inspection where defects are small relative to the full image. The SAHI framework (Akyon et al. 2022) provides a general-purpose slicing-aided inference pipeline for small object detection, enabling patch-based prediction with automatic merging of overlapping detections [16]. Patch-based training has been applied to small-defect detection in industrial inspection contexts, including steel surface defect detection [7], photovoltaic cell crack classification [8], and concrete crack detection [9]. These findings motivate the pyramid patch approach adopted here: input patches are presented at multiple scales during training, without modifying the network architecture. Unlike SAHI, which modifies inference-time behavior, our pyramid approach augments training data at multiple scales while using standard single-scale inference.
+Patch-based detection is standard in high-resolution industrial inspection where defects are small relative to the full image. The SAHI framework (Akyon et al. 2022) [16] proposes a generic pipeline that combines slicing-aided fine-tuning (training-time patch augmentation) with slicing-aided inference (test-time slicing followed by NMS merging of overlapping detections). Patch-based training has been applied to small-defect detection in industrial inspection contexts, including steel surface defect detection [7], photovoltaic cell crack classification [8], and concrete crack detection [9]. These findings motivate the pyramid patch approach adopted here: input patches are presented at multiple discrete scales during training while preserving standard single-scale inference at deployment. Our approach differs from SAHI's slicing-aided fine-tuning in that patches are explicitly presented at distinct scale levels rather than slice-and-resize augmentation, and we do not employ slicing-aided inference at test time.
 
 ### 2.3 Risk Scoring and Prioritization
 
@@ -166,7 +166,20 @@ To evaluate the robustness of risk rankings to weight choices, we perturbed regi
 
 ### 4.1 Detection Performance
 
-**Table 1: Baseline (EXP-001) vs. Pyramid Augmentation (EXP-002)**
+All headline performance figures in this paper are reported on the held-out test set (45 original images, 810 patches), evaluated with the final weights of each experiment (best validation epoch). The validation set was used for model and epoch selection only; validation metrics are reported in Table 1b for transparency.
+
+**Table 1: Baseline (EXP-001) vs. Pyramid Augmentation (EXP-002), test set**
+
+| Metric | EXP-001 (Baseline) | EXP-002 (Pyramid) | Change* |
+|---|---|---|---|
+| mAP@0.5 | 0.383 | **0.561** | +46% |
+| mAP@0.5:0.95 | 0.192 | **0.305** | +59% |
+| Precision | 0.424 | **0.691** | +63% |
+| Recall | 0.285 | **0.425** | +49% |
+
+*The Change column shows relative change from the baseline (EXP-001) metric value, computed as (EXP-002 − EXP-001) / EXP-001 × 100%.
+
+**Table 1b: Validation metrics (best epoch, used for model/epoch selection)**
 
 | Metric | EXP-001 (Baseline) | EXP-002 (Pyramid) | Change* |
 |---|---|---|---|
@@ -175,7 +188,7 @@ To evaluate the robustness of risk rankings to weight choices, we perturbed regi
 | Precision | 0.753 | **0.823** | +9% |
 | Recall | 0.284 | **0.492** | +73% |
 
-*The Change column shows relative change from the baseline (EXP-001) metric value, computed as (EXP-002 − EXP-001) / EXP-001 × 100%.
+The validation-based improvement (+67% in mAP@0.5) is larger than the test-based improvement (+46%), as expected when the best epoch is selected on the validation set. The Precision/Recall decomposition also differs between the two sets: on validation the gain is recall-driven (+73% Recall vs. +9% Precision), whereas on the test set both improve substantially (+63% Precision, +49% Recall; see the metric provenance note below Table 3).
 
 **Table 2: Per-Class Detection Performance (test set, IoU threshold = 0.5)**
 
@@ -203,11 +216,11 @@ To evaluate the robustness of risk rankings to weight choices, we perturbed regi
 
 *The five-class mAP@0.5 (0.561) is the primary performance metric because the model was trained on all five classes and evaluated against all ground-truth annotations. The four-class mAP@0.5 (0.701, excluding LE;CR) is reported as a supplementary indicator to show the achievable performance on classes where the model received sufficient training signal. It does not represent a separate model or evaluation; it is the same model's performance with LE;CR AP removed from the average. This metric is useful for readers assessing detection quality independent of the LE;CR class imbalance issue diagnosed in §4.2.*
 
-Precision and Recall in Tables 1–2 are reported at the default ultralytics confidence threshold of 0.25; AP values (Table 3) are computed across all confidence thresholds following standard practice.
+**Metric provenance**: Table 1 and Table 3 are computed with ultralytics `model.val()` on the test split with a confidence filter of 0.25 (identical configuration for both experiments). AP is derived from the precision–recall curve over the retained predictions; the reported Precision/Recall correspond to the F1-optimal point of that curve, not to a fixed threshold. Table 2 reports raw TP/FP/FN counts at a fixed confidence threshold of 0.25. Table 1b reports the standard ultralytics training-time validation metrics (best epoch).
 
 Representative detection examples (true positives, false positives, and false negatives) are shown in Fig. 2. The normalized confusion matrix (Fig. 3) illustrates inter-class confusion patterns, and Precision–Recall curves for each class are presented in Fig. 4.
 
-Pyramid augmentation improved TP counts across all detected classes while reducing FP counts; LE;CR remained at TP = 0 in both experiments.
+Pyramid augmentation improved TP counts across all detected classes while reducing FP counts; LE;CR remained at TP = 0 in both experiments. In per-class test AP@0.5 terms, the baseline (EXP-001) achieved 0.538 (LE;ER), 0.704 (VG;MT), 0.672 (SF;PO), and 0.000 for both LR;DA and LE;CR; pyramid augmentation raised LE;ER to 0.784 and enabled LR;DA detection (0.556), while LE;CR remained at 0.000.
 
 ### 4.2 LE;CR Detection Failure: Diagnosis
 
@@ -271,17 +284,19 @@ Focal loss and minority oversampling are known mitigation strategies for class i
 
 Rank inversion occurred in 2 of 8 scenarios (Tip weight ×0.5, Mid weight ×1.5), as visualized in Fig. 5. The Tip > Mid > Root ranking is robust under most perturbations. However, the Tip–Mid margin (0.280) is relatively narrow; halving the Tip weight alone causes inversion. Root scores are an order of magnitude lower and do not affect the ranking.
 
+*Note: scaling all class weights jointly (CW all ×1.5 / ×0.5) multiplies every score by the same constant, so the ranking is preserved trivially in those two scenarios. The substantive sensitivity test therefore consists of the six individual region-weight scenarios, of which four preserved the ranking.*
+
 ---
 
 ## 5. Discussion
 
 ### 5.1 Effectiveness of Pyramid Patch Augmentation
 
-Pyramid patch augmentation improved mAP@0.5 from 0.35 to 0.58 (+67%), primarily through Recall (+73%) with a modest Precision gain (+9%). This indicates that multi-scale training reduced false negatives without introducing excessive false positives. Per-class results (Table 2) show TP improvements for LE;ER, VG;MT, and LR;DA alongside reduced FP counts. LR;DA improved from TP=0 (EXP-001) to TP=2 (EXP-002), though the small sample size (6 GT instances) limits the reliability of this comparison.
+Pyramid patch augmentation improved test mAP@0.5 from 0.38 to 0.56 (+46%), with both Precision (+63%) and Recall (+49%) improving (Table 1); on the test set it reduced both false negatives (73 → 55) and false positives (36 → 22) at the fixed counting threshold of 0.25 (Table 2). On the validation set the gain was recall-driven (+73% Recall vs. +9% Precision, Table 1b). Per-class results (Table 2) show TP improvements for LE;ER, VG;MT, and LR;DA alongside reduced FP counts. LR;DA improved from TP=0 (EXP-001) to TP=2 (EXP-002), though the small sample size (6 GT instances) limits the reliability of this comparison.
 
 ### 5.2 Class Imbalance and LE;CR Detection Failure
 
-As shown in §4.2, LE;CR yielded zero predictions across all experiments. The root cause — severe class imbalance (1.2% of training patches) — has two implications. First, in blade inspection, leading edge cracks are structurally critical — hence the highest class weight (3.0) in our scoring scheme — and the inability to detect this class represents a significant limitation for practical deployment. Second, public drone inspection datasets exhibit inherent class imbalance because certain damage types are rarer in the field; addressing this requires either targeted data collection, class-aware loss functions (e.g., focal loss), or minority oversampling.
+As shown in §4.2, LE;CR yielded zero predictions across all experiments. The most supported explanation — severe class imbalance (1.2% of training patches; §4.2) — has two implications. First, in blade inspection, leading edge cracks are structurally critical — hence the highest class weight (3.0) in our scoring scheme — and the inability to detect this class represents a significant limitation for practical deployment. Second, public drone inspection datasets exhibit inherent class imbalance because certain damage types are rarer in the field; addressing this requires either targeted data collection, class-aware loss functions (e.g., focal loss), or minority oversampling.
 
 ### 5.3 Risk Score Interpretation
 
@@ -299,11 +314,11 @@ The industrial relevance of detection-driven prioritization is reinforced by the
 
 ### 5.4 Comparison with Prior Work
 
-Our mAP@0.5 of 0.58 is lower than recent results on related datasets, but a strict apples-to-apples comparison is not possible because evaluation protocols differ across studies. On the publicly-available DTU dataset (Gohar et al. 2023 annotations, 5 classes, IoU=0.5), Gohar et al. reported mAP@0.5 of 81.3% (YOLOv5) and 73.2% (Faster-RCNN) under patch-based inference. Shihavuddin et al. (2019) reported mAP = 81.1% but at IoU = 0.3 on the non-public EasyInspect dataset (4 classes), which is not directly comparable to ours. YOLO-Wind [12] reports 83.9% and DMR-YOLO [13] 82.2% on the DTU dataset, while DCW-YOLO [14] (93.7%) and AUD-YOLO [15] (92%) report their results on an independently collected dataset of 600 images rather than DTU. The gap between our 0.58 and these published values therefore reflects a combination of (i) differences in evaluation protocol (IoU threshold, dataset version, class taxonomy, public vs. non-public test set), and (ii) a deliberate design choice in this study: the detection module uses unmodified YOLOv8 to keep the pipeline simple and reproducible, rather than maximizing detection accuracy through architectural changes.
+Our test mAP@0.5 of 0.56 is lower than recent results on related datasets, but a strict apples-to-apples comparison is not possible because evaluation protocols differ across studies. On the publicly-available DTU dataset (Gohar et al. 2023 annotations, 5 classes, IoU=0.5), Gohar et al. reported mAP@0.5 of 81.3% (YOLOv5) and 73.2% (Faster-RCNN) under patch-based inference. Shihavuddin et al. (2019) reported mAP = 81.1% but at IoU = 0.3 on the non-public EasyInspect dataset (4 classes), which is not directly comparable to ours. YOLO-Wind [12] reports 83.9% and DMR-YOLO [13] 82.2% on the DTU dataset, while DCW-YOLO [14] (93.7%) and AUD-YOLO [15] (92%) report their results on an independently collected dataset of 600 images rather than DTU. The gap between our 0.56 and these published values therefore reflects a combination of (i) differences in evaluation protocol (IoU threshold, dataset version, class taxonomy, public vs. non-public test set), and (ii) a deliberate design choice in this study: the detection module uses unmodified YOLOv8 to keep the pipeline simple and reproducible, rather than maximizing detection accuracy through architectural changes.
 
 To verify that this gap is not attributable to model capacity, we trained YOLOv8s (11.1M parameters, 3.5× larger than YOLOv8n) on the same pyramid-augmented dataset under identical conditions (30 epochs, seed=0, CUDA T4). Table 3b summarizes the comparison.
 
-**Table 3b: Model Scale Comparison (Pyramid Augmented Data, 30 epochs, CUDA T4)**
+**Table 3b: Model Scale Comparison (Pyramid Augmented Data, 30 epochs, CUDA T4; validation set, best epoch)**
 
 | Model | Params | mAP@0.5 | mAP@0.5:0.95 | P | R |
 |---|---|---|---|---|---|
@@ -311,13 +326,13 @@ To verify that this gap is not attributable to model capacity, we trained YOLOv8
 | YOLOv8s | 11.1M | 0.575 | 0.309 | 0.872 | 0.487 |
 | YOLOv8m | 25.9M | 0.425 | 0.216 | 0.855 | 0.341 |
 
-Increasing model capacity did not improve mAP; performance degraded with larger models (YOLOv8m mAP@0.5 = 0.43, below YOLOv8n's 0.58). This indicates that the bottleneck lies in data characteristics (class imbalance, dataset size of 559 original images, annotation granularity) rather than model capacity. Larger models likely require more training data or epochs to converge — the 30-epoch budget may be insufficient for YOLOv8m (25.9M parameters) given this dataset size. The scoring framework proposed in §3.4 is independent of the detection backbone; adopting architectural improvements from YOLO-Wind, DMR-YOLO, or AUD-YOLO would improve detection inputs without requiring changes to the risk scoring pipeline.
+Increasing model capacity did not improve mAP; performance degraded with larger models (YOLOv8m validation mAP@0.5 = 0.43, below YOLOv8n's 0.58; model selection was performed on the validation set, and the selected YOLOv8n's held-out test mAP@0.5 is 0.56, Table 3). This indicates that the bottleneck lies in data characteristics (class imbalance, dataset size of 301 annotated original images, annotation granularity) rather than model capacity. Larger models likely require more training data or epochs to converge — the 30-epoch budget may be insufficient for YOLOv8m (25.9M parameters) given this dataset size. The scoring framework proposed in §3.4 is independent of the detection backbone; adopting architectural improvements from YOLO-Wind, DMR-YOLO, or AUD-YOLO would improve detection inputs without requiring changes to the risk scoring pipeline.
 
 Newer architectures (YOLOv9, YOLOv10, YOLOv11) were not tested and may offer further improvements. Evaluating these within the proposed pipeline is a direction for future work.
 
 Direct comparison with quantification-focused works employing different evaluation paradigms is also constrained: Aird et al. (2023) [20] reported pixel-level identification accuracies of 61–66% for total damage and 65–73% for deep damage on 140 confidential field images using Mask R-CNN with Feature Pyramid Network. These metrics—percent of pixels correctly classified relative to ground-truth annotations—are not directly comparable to bounding-box mAP@0.5 employed here, since the two paradigms answer different operational questions (areal extent vs. localization-and-classification). A unified evaluation across these paradigms is a direction for future work.
 
-**Recall as the priority metric for screening**: If 2D detection serves as the first stage of a two-stage inspection framework (2D screening → 3D detailed assessment), Recall becomes the most critical metric — missed detections at the screening stage propagate as blind spots through the entire degradation monitoring pipeline. The current Recall of 0.49 means that approximately half of all damage instances would not be flagged for 3D follow-up, limiting the reliability of any downstream degradation prediction. Improving Recall — through class balancing, architectural changes, or additional training data — is therefore a prerequisite for integrating 2D screening into a practical inspection workflow.
+**Recall as the priority metric for screening**: If 2D detection serves as the first stage of a two-stage inspection framework (2D screening → 3D detailed assessment), Recall becomes the most critical metric — missed detections at the screening stage propagate as blind spots through the entire degradation monitoring pipeline. The current test-set Recall of 0.43 (Table 1) means that more than half of all damage instances would not be flagged for 3D follow-up, limiting the reliability of any downstream degradation prediction. Improving Recall — through class balancing, architectural changes, or additional training data — is therefore a prerequisite for integrating 2D screening into a practical inspection workflow.
 
 ---
 
@@ -331,7 +346,7 @@ Direct comparison with quantification-focused works employing different evaluati
 
 4. **Weight subjectivity**: class_weight and region_weight are practitioner-informed priors, not calibrated against repair outcomes. The Tip–Mid ranking margin is narrow and inverts under ±50% Tip weight perturbation (§4.4).
 
-5. **Single dataset and annotation dependency**: Only the DTU/Nordtank dataset (one turbine type, 559 images) was used. Generalization to other turbine types or imaging conditions is untested. Detection results are also bounded by the annotation quality of Gohar et al. (2023), for which inter-annotator agreement was not assessed. The DTU Blade Defect Dataset (Scientific Data, 2026; 1,065 images, 6 classes) is a candidate for future cross-dataset validation.
+5. **Single dataset and annotation dependency**: Only the DTU/Nordtank dataset (one turbine type, 301 annotated images) was used. Generalization to other turbine types or imaging conditions is untested. Detection results are also bounded by the annotation quality of Gohar et al. (2023), for which inter-annotator agreement was not assessed. The DTU Blade Defect Dataset (Scientific Data, 2026; 1,065 images, 6 classes) is a candidate for future cross-dataset validation.
 
 6. **No temporal tracking**: Images from 2017 and 2018 lack spatial correspondence; year-wise score differences (Table 6) are cross-sectional, not longitudinal.
 
@@ -363,11 +378,11 @@ This study presented a reproducible pipeline that bridges automated damage detec
 
 The main findings are:
 
-1. **Pyramid patch augmentation** improved mAP@0.5 from 0.35 to 0.58 (+67%), primarily through Recall improvement (+73%), demonstrating the effectiveness of multi-scale training for small damage detection.
+1. **Pyramid patch augmentation** improved held-out test mAP@0.5 from 0.38 to 0.56 (+46%; validation best-epoch basis: 0.35 to 0.58, +67%), improving both Precision and Recall on the test set, demonstrating the effectiveness of multi-scale training for small damage detection.
 
-2. **Per-class analysis** revealed that four of five damage classes achieved AP@0.5 of 0.56–0.78, while LE;CR (leading edge crack) was completely undetected (AP = 0.00). Systematic diagnosis confirmed class imbalance as the root cause: LE;CR was present in only 1.2% of training patches, and the model produced zero LE;CR predictions across all experiments.
+2. **Per-class analysis** revealed that four of five damage classes achieved AP@0.5 of 0.56–0.78, while LE;CR (leading edge crack) was completely undetected (AP = 0.00). Systematic diagnosis identified class imbalance as the most supported explanation (object size, confidence thresholding, and evaluation methodology were ruled out): LE;CR was present in only 1.2% of training patches, and the model produced zero LE;CR predictions across all experiments. Confirmation through class-balancing interventions (focal loss, oversampling) remains future work.
 
-3. **Span-wise risk scoring** produced Tip > Mid > Root ordering consistent with field experience. Sensitivity analysis confirmed that this ranking is robust to ±50% weight perturbation in 6 of 8 scenarios.
+3. **Span-wise risk scoring** produced Tip > Mid > Root ordering consistent with field experience. Sensitivity analysis confirmed that this ranking is robust to ±50% weight perturbation in 6 of 8 scenarios (two of which are uniform class-weight scalings that preserve rank trivially; 4 of the 6 substantive scenarios preserved the ranking, §4.4).
 
 4. **The LE;CR failure carries practical implications** because leading edge cracks are among the most structurally critical damage types. This result suggests that public drone inspection datasets, without dedicated class balancing measures, may be insufficient for reliable detection of rare but safety-relevant damage classes.
 
@@ -430,14 +445,14 @@ Future work should address LE;CR detection through class-aware training strategi
 | 1 | LE;CR AP=0 | 「1クラス全滅で mAP 報告する意味は」 | §4.2 で原因診断、4クラス mAP 併記 | Focal loss 再学習で改善を示す |
 | 2 | ブレード独立性 | 「同一ブレードが split 跨ぎ」 | 原画像単位分割確認済み。ブレード ID なし | Limitations に明記済み |
 | 3 | 重みの主観性 | 「客観的根拠は」 | 感度分析 ±50%、Malik & Bak 2025 引用 | 補修記録との照合で検証 |
-| 4 | 先行研究との差 | 「mAP 0.58 vs 0.82–0.94」 | §5.4でmAP gap議論、YOLO-Wind/DMR-YOLO/DCW-YOLO/AUD-YOLO引用（データセット帰属明示）、アーキテクチャ非改変を明示 | YOLOv8s/m/YOLO-Wind再現実験 |
+| 4 | 先行研究との差 | 「test mAP 0.56 vs 0.82–0.94」 | §5.4でmAP gap議論、YOLO-Wind/DMR-YOLO/DCW-YOLO/AUD-YOLO引用（データセット帰属明示）、アーキテクチャ非改変を明示 | YOLOv8s/m/YOLO-Wind再現実験 |
 | 5 | chord 除外 | 「前縁/後縁不明は大きい」 | cx 均一分布の証拠提示 | 幾何推定の予備実験 |
 | 6 | スコア未検証 | 「補修優先度との対応は」 | 未検証と明記 | 実データがあれば大幅強化 |
 | 7 | 学習設定 | 「30 epoch / nano は十分か」 | 計算資源制約を記述 | 追加 epoch 実験 |
 | 8 | 年次バイアス | 「2017=180 vs 2018=630 で公平か」 | n_patches 明記、cross-sectionalと明言 | per-patch 正規化スコア併記 |
 | 9 | split seed依存性 | 「seed=42の1回だけで結果は安定か」 | §3.2にseed単一性明記、§6 Limitation 8に追加 | 複数seed（5-fold等）の安定性は未検証。短報の範囲として許容的だが指摘はありうる |
 | 10 | アノテーション品質 | 「Gohar et al.のアノテーションは検証済みか」 | §6 Limitation 5に統合 | 独立アノテーションによる検証 |
-| 11 | 単一アーキテクチャ＋検出性能gap | 「YOLOv8nだけでmAP 0.58は低い」 | §5.4で簡潔に認め、§6 Limitation 7に統合。パイプラインの主価値と分離 | 検出バックボーン改善実験 |
+| 11 | 単一アーキテクチャ＋検出性能gap | 「YOLOv8nだけでtest mAP 0.56は低い」 | §5.4で簡潔に認め、§6 Limitation 7に統合。パイプラインの主価値と分離 | 検出バックボーン改善実験 |
 
 ---
 
@@ -460,3 +475,5 @@ Future work should address LE;CR detection through class-aware training strategi
 | v9.4 | 2026-06-12 | Maniaci 2022 IEA Wind Task 46 / Aird 2023 Energies の主張駆動全頁精読（A11c + A11b）に基づく業界文脈・先行研究厚みの補強: (1) §2.1 Related Work に Aird et al. 2023 [20] の Mask R-CNN + PTS 2 モデル比較（140 confidential field images、shallow/deep 分類、両モデル 65% damage area 識別）を追加。評価指標の差異（pixel-level vs bbox-level mAP）を明示。(2) §2.3 Risk Scoring に IEA Wind Task 46（Maniaci et al. 2022 [19]）の 4 軸 × 6 段階業界標準分類への言及を追加。本研究が pre-classification detection stage で動作することを明確化。(3) §5.4 Comparison with Prior Work 末尾に Aird 2023 の pixel-level accuracy（61-66% 総damage、65-73% deep damage）への直接比較不能性を注記。(4) §6 Limitations に項目 9 として「Industry-standard severity alignment」を追加（IEA Wind Task 46 業界標準との未対応を将来研究の課題として明示）。(5) 参考文献 [19] Maniaci 2022 IEA Wind Task 46 と [20] Aird 2023 Energies を追加。主張の強度は両論文の記述・数値に限定し、推測や誇張は加えない。引用根拠の詳細は `tools/reference_audit/A11b_aird_2023_full_reading_2026-06-12.md` と `tools/reference_audit/A11c_maniaci_2022_full_reading_2026-06-12.md` |
 | v9.5 | 2026-07-02 | 内部整合性監査（Paper 1-3 全文精査）に基づく機械的修正: (1) §5.4 の「(DMR-YOLO, DCW-YOLO, AUD-YOLO) report 0.82–0.92」を個別数値・データセット帰属明示に変更（DCW-YOLO 93.7% がレンジ外である点は v9.2 で §2.1 のみ修正済みで、§5.4 は未反映だった）。(2) §6 Limitation 7 の「achieving 0.82–0.92 on the same dataset」を「0.82–0.94、YOLO-Wind/DMR-YOLO は DTU・DCW/AUD-YOLO は独立データセット」に修正（「same dataset」は v9.2 の §2.1 修正内容と矛盾していた）。(3) 査読論点表 #4 のレンジ表記を 0.82–0.94 に更新。**非機械的な数値矛盾（559 vs 301 分割、mAP 0.581 vs 0.561、Table 1 P/R と Table 2 集計の不一致、8,055 vs 11,448 分母、Table 3b s=0.575 vs 履歴 s=0.554）は実験ログ照合が必要なため未修正**。詳細は `tools/reference_audit/paper123_consistency_audit_2026-07-02.md` |
 | v9.6 | 2026-07-02 | 実験環境の実データ照合による数値矛盾の解決（監査記録 A-1〜A-5 のうち事実確定分を適用）: (1) **画像数 559→301**：yolo_dataset の実ファイル数（train 212 + val 44 + test 45 = 301 元画像、パッチ 11,448/792/810）と Gohar COCO JSON（train1024-s.json 559 **annotations**・3 JSON 合計 301 unique 元画像）を照合。「559」は訓練 bbox アノテーション数の誤転記と確定（559×3 スケール = 1,677 = Table 4 train 合計とも整合）。年別内訳も「2017: 161, 2018: 398」→「2017: 57, 2018: 244」に修正（旧 398 は raw 2018 フォルダ枚数、161 は 559−398 の導出値と推定）。1文主張・Abstract・§3.1 表・§3.2 に適用。§3.2 基本パッチ数 10,062→5,418。(2) **LE;CR 訓練パッチ比率 1.6%→1.2%**：8,055 はラベルファイル総数（空 6,786 含む）であり、全訓練パッチ 11,448 を分母とする 132/11,448 = 1.2% に統一（132 はラベル走査で検証済み、クラス別 bbox 数 588/687/36/171/195 も Table 4 と完全一致）。(3) Table 6 の年別 n_patches（2017: 10 枚・2018: 35 枚）は実データと一致確認・変更なし。**mAP 0.581（val 最良エポック）vs 0.561（test per-class 平均）の提示方法と Table 1 P/R 注記（0.25 閾値記載は要再検討）は himinさん 判断待ちのため未修正**。Table 3b の 0.575 は exp003 results.csv の最良エポック値 0.57539 と一致確認（改訂履歴 v7 の「s: 0.554」が誤記） |
+| v9.7 | 2026-07-05 | **mAP 提示方法 案a（test 主指標化）適用 + 修正案① SAHI 案A + B-2 脚注**（himinさん 決定 2026-07-05）: (1) **EXP-001 の test セット評価を新規実行**（`phase1_image_risk_score/src/eval_test_per_class.py`。手順検証として exp002 を同スクリプトで再評価し、公表値と完全一致（mAP@0.5 0.560519・per-class 全5クラス一致）を確認した上で実施）。EXP-001 test: mAP@0.5 0.383 / mAP@0.5:0.95 0.192 / P 0.424 / R 0.285（conf フィルタ 0.25 の model.val、P/R は ultralytics 仕様により F1 最適点の値。`reports/table_class_ap_exp001_baseline_yolov8n.csv`）。(2) **Table 1 を test 基準比較に差し替え**（mAP@0.5 +46%・mAP@0.5:0.95 +59%・P +63%・R +49%）、旧 val 値は Table 1b（best epoch・モデル/エポック選択用）として保持し、§4.1 冒頭に test 主指標の方針文を追加。Abstract・1文主張・貢献・§5.1・§5.4・Conclusion・査読論点表 #4/#11 の「0.58 / +67%」を「test 0.56 / +46%（val 併記）」に統一。(3) **§5.1「Recall 主導」を val 限定の観察に修正**：test では P +63% / R +49% の両改善（FN 73→55・FP 36→22）であり、val（R +73% / P +9%）とパターンが異なることを明示。§5.4 の「Recall of 0.49」も test 0.43 に統一。A-3 で指摘されていた §4.1 の P/R 注記の不正確さ（「Tables 1–2 とも conf 0.25」）も是正し、Metric provenance 注記（Table 1/3 = conf フィルタ 0.25 の model.val で P/R は F1 最適点、Table 2 = 固定閾値 0.25 の生カウント、Table 1b = 学習時 val 指標）に書き換え。(4) **修正案① 案A 適用**：§2.2 の SAHI 記述を SF（訓練時）+ SAHI（推論時）の二段構成として正確化し、pyramid との差別化（離散スケール提示・test-time slicing 不使用）を具体化。(5) **B-2 脚注適用**：§4.4 と Conclusion 3 に「CW 一様スケーリング2件は順位不変が自明、実質は部位重み個別6シナリオ中4で保存」を明記（卒論版 paper1_thesis_ja/en の脚注文面を移植）。(6) v9.6 で見逃された「559」残存2箇所（§5.4 Table 3b 考察・Limitation 5）を 301 に修正。Table 3b ヘッダに validation（best epoch）ラベルを明示 |
+| v9.8 | 2026-07-05 | **Codex 独立レビュー（v9.7 適用直後・gpt-5.5・読み取り専用）の指摘反映**。レビュー結果：AP/mAP 転記の CSV 一致・eval スクリプトの条件一致（week1_analysis task2 と同一）・test 主指標化の消し忘れなし・Paper 3 連動 3箇所適用済みは**すべて問題なし**。指摘5件（中2・低3）を全件採用：(1) **中**：Table 1 の P/R が成果物 CSV から独立検証不可 → eval_test_per_class.py に P/R 列（クラス別 = F1最適点、全体 = mp/mr）を追加し両 CSV を再生成（exp001 mP 0.4236/mR 0.2848、exp002 mP 0.6911/mR 0.4247 = Table 1 と一致）。(2) **低**：LE;CR「confirmed ... root cause」が介入実験なしには強い → §5.2 と Conclusion 2 を「most supported explanation（代替仮説は消去済み、介入による確認は future work）」に較正（Proposal Policy 整合）。(3) **低**：Abstract の「6 of 8」に自明性の言及なし → Abstract・1文主張・貢献に「実質は部位重み個別6中4」を併記。残り2件は Paper 2 側（v10.3 参照） |
