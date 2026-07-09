@@ -1,6 +1,6 @@
 # Paper 3: 風車ブレード劣化予測に向けた画像・SCADA・空力シミュレーション統合パイプラインの設計とギャップ分析
 
-**ステータス**: v5.7（Paper 1 v9.7 の mAP 提示方法 案a に連動：mAP@0.5 = 0.58 → test mAP@0.5 = 0.56（3箇所）。§7.3 に決定論的可視化レイヤーの将来拡張を追記）
+**ステータス**: v5.8（v5.7 = Paper 1 案a 連動（test mAP@0.5 = 0.56、3箇所）＋ §7.3 決定論的可視化の将来拡張 → v5.8 = IEC 61400-28/LifeWind 引用追加（§1.1・参考文献 [29]、himinさん承認 2026-07-09。原文に忠実に「二大重点項目の一つ」と較正））
 **最終更新**: 2026-07-05
 
 ---
@@ -67,7 +67,7 @@ References
 
 ### 1.1 Background and Motivation
 
-風車ブレードは20年以上の運用期間を通じて、エロージョン、亀裂、雷撃損傷等の表面劣化と、繰り返し疲労荷重による構造的劣化を同時に受ける [10][11]。特に前縁エロージョン（LEE: Leading Edge Erosion）は、Mishnaevsky et al. (2021) [26] が指摘するように、気象学・空力・材料科学・計算力学にまたがる multiscale multiphysics プロセスであり、その評価と対策には複数分野の情報統合が本質的に要請される。さらに、Pryor et al. (2022) [28] は北米・欧州 6 地点の長期 disdrometer 観測を整理し、降雨強度（RR）・droplet size distribution（DSD）・雹頻度の地点間変動性と風速との同時分布が LEE 発生条件を支配することを示しており、site-specific な大気観測の重要性が再確認されている。現行のO&M実務では、定期的なドローン点検やロープアクセス点検による画像評価と、SCADAデータに基づく運転状態監視が独立に行われている [9][13]。しかし、表面損傷の視覚的評価と運転荷重履歴を統合して劣化進行リスクを定量的に評価する枠組みは、まだ確立されていない [11][12]。
+風車ブレードは20年以上の運用期間を通じて、エロージョン、亀裂、雷撃損傷等の表面劣化と、繰り返し疲労荷重による構造的劣化を同時に受ける [10][11]。特に前縁エロージョン（LEE: Leading Edge Erosion）は、Mishnaevsky et al. (2021) [26] が指摘するように、気象学・空力・材料科学・計算力学にまたがる multiscale multiphysics プロセスであり、その評価と対策には複数分野の情報統合が本質的に要請される。さらに、Pryor et al. (2022) [28] は北米・欧州 6 地点の長期 disdrometer 観測を整理し、降雨強度（RR）・droplet size distribution（DSD）・雹頻度の地点間変動性と風速との同時分布が LEE 発生条件を支配することを示しており、site-specific な大気観測の重要性が再確認されている。産業側でも、EUDP LifeWind project（Natarajan et al. 2020）[29] が策定中の IEC 61400-28（寿命延長標準）への推奨事項として、ブレード前縁エロージョンを寿命延長期間の点検で特に焦点を当てるべき項目（ボルト締結と並ぶ二大重点項目の一つ）として明示しており、本研究が扱う画像・SCADA・物理モデル統合による劣化評価の産業意義を裏付けている。現行のO&M実務では、定期的なドローン点検やロープアクセス点検による画像評価と、SCADAデータに基づく運転状態監視が独立に行われている [9][13]。しかし、表面損傷の視覚的評価と運転荷重履歴を統合して劣化進行リスクを定量的に評価する枠組みは、まだ確立されていない [11][12]。
 
 ### 1.2 Problem: The Integration Gap
 
@@ -457,6 +457,7 @@ w_V/w_TIは同一物理量（風況パラメータ）間の相対重要度であ
 [26] Mishnaevsky Jr., L. et al. (2021): Leading edge erosion of wind turbine blades: Understanding, prevention and protection. Renewable Energy, 169, 953–969. DOI: 10.1016/j.renene.2021.01.044
 [27] Law, H. and Koutsos, V. (2020): Leading edge erosion of wind turbines: Effect of solid airborne particles and rain on operational wind farms. Wind Energy, 23(10), 1955–1965. DOI: 10.1002/we.2540
 [28] Pryor, S.C.; Barthelmie, R.J.; Cadence, J.; Dellwik, E.; Hasager, C.B.; Kral, S.T.; Reuder, J.; Rodgers, M.; Veraart, M. (2022): Atmospheric Drivers of Wind Turbine Blade Leading Edge Erosion: Review and Recommendations for Future Research. Energies, 15(22), 8553. DOI: 10.3390/en15228553
+[29] Natarajan, A.; Dimitrov, N.K.; William Peter, D.R.; Bergami, L.; Madsen, J.; Olesen, N. et al. (2020): Demonstration of Requirements for Life Extension of Wind Turbines Beyond Their Design Life (LifeWind). DTU Wind Energy Report No. E-0196, EUDP Project no. 64017-05114.
 
 ---
 
