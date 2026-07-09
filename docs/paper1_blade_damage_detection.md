@@ -1,7 +1,7 @@
 # Paper 1: Wind Turbine Blade Surface Damage Detection and Span-wise Risk Scoring Using Drone Inspection Images with Pyramid Patch Augmentation
 
-**ステータス**: v9.8（v9.7 = mAP 案a 適用（test 主指標化 0.38→0.56, +46%）・修正案① SAHI・B-2 脚注 → v9.8 = Codex 独立レビュー（2026-07-05）指摘の反映：評価 CSV に P/R 列追加、LE;CR 原因表現の較正、Abstract の感度分析自明性併記）
-**最終更新**: 2026-07-05（詳細は `tools/reference_audit/paper123_consistency_audit_2026-07-02.md` と `tools/reference_audit/codex_review_decisions_2026-07-05.md`）
+**ステータス**: v9.9（v9.7 = mAP 案a 適用（test 主指標化 0.38→0.56, +46%）→ v9.8 = Codex レビュー反映 → v9.9 = 再現パッケージ棚卸しによる §3.3/§7 の誤記修正：ultralytics 8.3.x→**8.4.33**、シード記述の精密化（分割 seed=42／学習 seed=0）、学習スクリプト記述の実態整合）
+**最終更新**: 2026-07-05（詳細は `tools/reference_audit/paper123_consistency_audit_2026-07-02.md`・`codex_review_decisions_2026-07-05.md`・`repro_package_inventory_2026-07-05.md`）
 
 ---
 
@@ -108,7 +108,7 @@ The overall pipeline — from raw drone images through patch slicing, augmentati
 | Parameter | Value |
 |---|---|
 | Architecture | YOLOv8n (3.2M parameters) |
-| Framework | ultralytics==8.3.x (exact minor version recorded in supplementary `requirements.txt`) |
+| Framework | ultralytics==8.4.33 (pinned in supplementary `requirements_phase1.txt`) |
 | Python | 3.11.x |
 | Input size | 640 × 640 px |
 | Epochs | 30 |
@@ -363,8 +363,8 @@ Direct comparison with quantification-focused works employing different evaluati
 The input dataset is publicly available; all code and trained weights are included as supplementary materials:
 
 - **Dataset**: DTU Wind Turbine Inspection Images (Mendeley, DOI: 10.17632/hd96prn3nc.2) with annotations by Gohar et al. (2023)
-- **Code**: Preprocessing, training, evaluation, and figure generation scripts
-- **Configuration**: YOLOv8n training configuration, random seed (seed=42), and all hyperparameters
+- **Code**: Preprocessing, evaluation, and figure generation scripts; training was executed via the ultralytics API/CLI, with the complete training configuration preserved in each experiment's `args.yaml`
+- **Configuration**: YOLOv8n training configuration (`args.yaml`, training seed=0) and the dataset split seed (seed=42, `preprocess.py`), with all hyperparameters
 - **Trained weights**: Model weights for EXP-001 and EXP-002
 - **Risk scoring**: `risk_score.py` for all risk score calculations and sensitivity analysis
 
@@ -477,3 +477,4 @@ Future work should address LE;CR detection through class-aware training strategi
 | v9.6 | 2026-07-02 | 実験環境の実データ照合による数値矛盾の解決（監査記録 A-1〜A-5 のうち事実確定分を適用）: (1) **画像数 559→301**：yolo_dataset の実ファイル数（train 212 + val 44 + test 45 = 301 元画像、パッチ 11,448/792/810）と Gohar COCO JSON（train1024-s.json 559 **annotations**・3 JSON 合計 301 unique 元画像）を照合。「559」は訓練 bbox アノテーション数の誤転記と確定（559×3 スケール = 1,677 = Table 4 train 合計とも整合）。年別内訳も「2017: 161, 2018: 398」→「2017: 57, 2018: 244」に修正（旧 398 は raw 2018 フォルダ枚数、161 は 559−398 の導出値と推定）。1文主張・Abstract・§3.1 表・§3.2 に適用。§3.2 基本パッチ数 10,062→5,418。(2) **LE;CR 訓練パッチ比率 1.6%→1.2%**：8,055 はラベルファイル総数（空 6,786 含む）であり、全訓練パッチ 11,448 を分母とする 132/11,448 = 1.2% に統一（132 はラベル走査で検証済み、クラス別 bbox 数 588/687/36/171/195 も Table 4 と完全一致）。(3) Table 6 の年別 n_patches（2017: 10 枚・2018: 35 枚）は実データと一致確認・変更なし。**mAP 0.581（val 最良エポック）vs 0.561（test per-class 平均）の提示方法と Table 1 P/R 注記（0.25 閾値記載は要再検討）は himinさん 判断待ちのため未修正**。Table 3b の 0.575 は exp003 results.csv の最良エポック値 0.57539 と一致確認（改訂履歴 v7 の「s: 0.554」が誤記） |
 | v9.7 | 2026-07-05 | **mAP 提示方法 案a（test 主指標化）適用 + 修正案① SAHI 案A + B-2 脚注**（himinさん 決定 2026-07-05）: (1) **EXP-001 の test セット評価を新規実行**（`phase1_image_risk_score/src/eval_test_per_class.py`。手順検証として exp002 を同スクリプトで再評価し、公表値と完全一致（mAP@0.5 0.560519・per-class 全5クラス一致）を確認した上で実施）。EXP-001 test: mAP@0.5 0.383 / mAP@0.5:0.95 0.192 / P 0.424 / R 0.285（conf フィルタ 0.25 の model.val、P/R は ultralytics 仕様により F1 最適点の値。`reports/table_class_ap_exp001_baseline_yolov8n.csv`）。(2) **Table 1 を test 基準比較に差し替え**（mAP@0.5 +46%・mAP@0.5:0.95 +59%・P +63%・R +49%）、旧 val 値は Table 1b（best epoch・モデル/エポック選択用）として保持し、§4.1 冒頭に test 主指標の方針文を追加。Abstract・1文主張・貢献・§5.1・§5.4・Conclusion・査読論点表 #4/#11 の「0.58 / +67%」を「test 0.56 / +46%（val 併記）」に統一。(3) **§5.1「Recall 主導」を val 限定の観察に修正**：test では P +63% / R +49% の両改善（FN 73→55・FP 36→22）であり、val（R +73% / P +9%）とパターンが異なることを明示。§5.4 の「Recall of 0.49」も test 0.43 に統一。A-3 で指摘されていた §4.1 の P/R 注記の不正確さ（「Tables 1–2 とも conf 0.25」）も是正し、Metric provenance 注記（Table 1/3 = conf フィルタ 0.25 の model.val で P/R は F1 最適点、Table 2 = 固定閾値 0.25 の生カウント、Table 1b = 学習時 val 指標）に書き換え。(4) **修正案① 案A 適用**：§2.2 の SAHI 記述を SF（訓練時）+ SAHI（推論時）の二段構成として正確化し、pyramid との差別化（離散スケール提示・test-time slicing 不使用）を具体化。(5) **B-2 脚注適用**：§4.4 と Conclusion 3 に「CW 一様スケーリング2件は順位不変が自明、実質は部位重み個別6シナリオ中4で保存」を明記（卒論版 paper1_thesis_ja/en の脚注文面を移植）。(6) v9.6 で見逃された「559」残存2箇所（§5.4 Table 3b 考察・Limitation 5）を 301 に修正。Table 3b ヘッダに validation（best epoch）ラベルを明示 |
 | v9.8 | 2026-07-05 | **Codex 独立レビュー（v9.7 適用直後・gpt-5.5・読み取り専用）の指摘反映**。レビュー結果：AP/mAP 転記の CSV 一致・eval スクリプトの条件一致（week1_analysis task2 と同一）・test 主指標化の消し忘れなし・Paper 3 連動 3箇所適用済みは**すべて問題なし**。指摘5件（中2・低3）を全件採用：(1) **中**：Table 1 の P/R が成果物 CSV から独立検証不可 → eval_test_per_class.py に P/R 列（クラス別 = F1最適点、全体 = mp/mr）を追加し両 CSV を再生成（exp001 mP 0.4236/mR 0.2848、exp002 mP 0.6911/mR 0.4247 = Table 1 と一致）。(2) **低**：LE;CR「confirmed ... root cause」が介入実験なしには強い → §5.2 と Conclusion 2 を「most supported explanation（代替仮説は消去済み、介入による確認は future work）」に較正（Proposal Policy 整合）。(3) **低**：Abstract の「6 of 8」に自明性の言及なし → Abstract・1文主張・貢献に「実質は部位重み個別6中4」を併記。残り2件は Paper 2 側（v10.3 参照） |
+| v9.9 | 2026-07-05 | **再現パッケージ棚卸し（`tools/reference_audit/repro_package_inventory_2026-07-05.md`）による誤記修正**: (1) §3.3 の「ultralytics==8.3.x」→「**8.4.33**」。根拠 = requirements_phase1.txt の git 履歴（学習3日後の 2026-04-16 フリーズで 8.4.33）＋ 8.4.33 環境での test 再評価が公表値と完全一致。(2) §7 のシード記述を「分割 seed=42（preprocess.py）／学習 seed=0（args.yaml）」に精密化（旧記述は分割シードのみ）。(3) §7 の「training scripts」を実態（ultralytics API/CLI 実行＋args.yaml 保存）に整合。その他の §7 主張項目（データ・前処理/評価/図/リスクスコアのコード・4実験の args.yaml・重み・requirements ピン止め）は実在を確認済み |

@@ -1,9 +1,9 @@
 # Automated Detection of Wind Turbine Blade Surface Damage and Span-wise Risk Scoring Using Drone Inspection Images with Pyramid Patch Augmentation
 
 **Document type**: Graduation-thesis-style draft (English version)
-**Source document**: `paper1_blade_damage_detection.md` v9.6 (all figures verified against experimental data on 2026-07-02)
-**Created**: 2026-07-03
-**Note**: All numerical values follow the verified v9.6 source. Detection performance is reported with an explicit distinction between the *validation set* (used during training) and the *held-out test set* (final evaluation). Disclosure of AI assistance follows `ai_assisted_workflow_disclosure.md` (decision pending).
+**Source document**: `paper1_blade_damage_detection.md` v9.8 (test-primary mAP presentation and Codex-review fixes applied on 2026-07-05)
+**Created**: 2026-07-03 (synchronized with v9.8 on 2026-07-05: test-based improvement +46%, EXP-001 test evaluation values, calibrated LE;CR causal wording)
+**Note**: All numerical values follow the verified v9.8 source. Detection performance is reported with an explicit distinction between the *validation set* (used during training) and the *held-out test set* (final evaluation). Disclosure of AI assistance follows `ai_assisted_workflow_disclosure.md` (decision pending).
 
 ---
 
@@ -11,9 +11,9 @@
 
 As wind power expands worldwide, detecting surface damage on turbine blades early and deciding which repairs to prioritize has become a central task in operation and maintenance (O&M). Drone-based inspection now produces large volumes of high-resolution imagery, yet the step from raw images to repair decisions still relies on manual interpretation and individual experience. This study builds a single, reproducible pipeline that combines (1) deep-learning-based detection of surface damage in publicly available drone inspection images, and (2) a scheme that aggregates the detections into span-wise risk scores for three blade regions (tip, mid-span, and root).
 
-For detection, we use the lightweight object detector YOLOv8n. High-resolution images are sliced into 1,024-pixel patches, and we propose *pyramid patch augmentation*, which presents each training patch at multiple scales. Experiments use the 301 annotated images (13,050 patches) of the public DTU inspection dataset of the Nordtank turbine. With pyramid augmentation, the validation-set mAP@0.5 improved from 0.35 (baseline) to 0.58, a gain of about 67%. On the held-out test set, the final five-class mAP@0.5 was 0.56, with four of the five damage classes reaching AP@0.5 between 0.56 and 0.78. The remaining class, leading-edge cracks (LE;CR), was never detected (AP = 0.00). A systematic differential diagnosis identified severe class imbalance — LE;CR appears in only 1.2% of training patches — as the root cause.
+For detection, we use the lightweight object detector YOLOv8n. High-resolution images are sliced into 1,024-pixel patches, and we propose *pyramid patch augmentation*, which presents each training patch at multiple scales. Experiments use the 301 annotated images (13,050 patches) of the public DTU inspection dataset of the Nordtank turbine. With pyramid augmentation, the held-out test mAP@0.5 improved from 0.38 (baseline) to 0.56, a gain of about 46% (on the validation set used during training, from 0.35 to 0.58, about 67%), with four of the five damage classes reaching test AP@0.5 between 0.56 and 0.78. The remaining class, leading-edge cracks (LE;CR), was never detected (AP = 0.00). A systematic differential diagnosis identified severe class imbalance — LE;CR appears in only 1.2% of training patches — as the most supported explanation, having ruled out object size, confidence thresholding, and evaluation methodology; confirmation through class-balancing interventions remains future work.
 
-The detections were then converted into region-wise risk scores by weighting each detection with the structural severity of its damage class and the aerodynamic importance of its span position. The resulting ranking (tip > mid > root) is consistent with field experience. A sensitivity analysis perturbing the weights by ±50% preserved this ranking in six of eight scenarios. The main contribution of this work is a reproducible end-to-end pipeline, built entirely from public data, whose performance and limitations — in particular the inability to detect a rare but structurally critical damage class — are quantified and documented.
+The detections were then converted into region-wise risk scores by weighting each detection with the structural severity of its damage class and the aerodynamic importance of its span position. The resulting ranking (tip > mid > root) is consistent with field experience. A sensitivity analysis perturbing the weights by ±50% preserved this ranking in six of eight scenarios (two of which are uniform class-weight scalings that preserve rank trivially; four of the six substantive region-weight perturbations preserved it). The main contribution of this work is a reproducible end-to-end pipeline, built entirely from public data, whose performance and limitations — in particular the inability to detect a rare but structurally critical damage class — are quantified and documented.
 
 **Keywords**: wind turbine blade, surface damage detection, deep learning, YOLOv8, class imbalance, risk scoring, drone inspection
 
@@ -129,7 +129,7 @@ The central technique of this study, pyramid patch augmentation, presents each t
 | Item | Setting |
 |---|---|
 | Model | YOLOv8n (3.2M parameters) |
-| Framework | ultralytics 8.3.x |
+| Framework | ultralytics 8.4.33 (pinned in the supplementary requirements_phase1.txt) |
 | Input size | 640 × 640 pixels |
 | Epochs | 30 (no early stopping) |
 | Batch size | 8 |
@@ -165,7 +165,7 @@ To assess how the subjective weights affect the ranking, region weights and clas
 
 Performance is reported separately for (a) the **validation set**, used during training and for the baseline comparison, and (b) the held-out **test set**, used for the final evaluation.
 
-**(a) Validation set (Table 1).** Pyramid patch augmentation raised mAP@0.5 from 0.348 to 0.581 (best epoch), a **+67%** gain, and mAP@0.5:0.95 from 0.162 to 0.314 (+95%). Precision rose from 0.753 to 0.823 (+9%) and recall from 0.284 to 0.492 (+73%): the improvement came mainly from fewer missed detections.
+**(a) Validation set (Table 1).** Pyramid patch augmentation raised mAP@0.5 from 0.348 to 0.581 (best epoch), a **+67%** gain, and mAP@0.5:0.95 from 0.162 to 0.314 (+95%). Precision rose from 0.753 to 0.823 (+9%) and recall from 0.284 to 0.492 (+73%): on the validation set, the improvement came mainly from fewer missed detections (on the test set, as shown below, both precision and recall improved).
 
 **Table 1: Validation-set evaluation (EXP-001 vs. EXP-002)**
 
@@ -189,7 +189,7 @@ Performance is reported separately for (a) the **validation set**, used during t
 | LE;CR | 11 | 0 | 0 | 11 |
 | **Total** | **124** | **69** | **22** | **55** |
 
-The baseline totals were TP 51 / FP 36 / FN 73: pyramid augmentation increased true positives while reducing false positives.
+The baseline totals were TP 51 / FP 36 / FN 73: pyramid augmentation increased true positives while reducing false positives. In the between-experiment comparison on the test set, mAP@0.5 rose from 0.383 (EXP-001) to 0.561 (EXP-002), a **+46%** gain, and mAP@0.5:0.95 from 0.192 to 0.305 (+59%). Precision improved from 0.424 to 0.691 (+63%) and recall from 0.285 to 0.425 (+49%) — both improved, unlike the recall-driven pattern observed on the validation set.
 
 **Table 3: Per-class test-set AP (EXP-002)**
 
@@ -259,7 +259,7 @@ Inversions occurred only when the tip weight was halved or the mid weight increa
 
 ### 5.1 Effect of pyramid patch augmentation
 
-The +67% validation-mAP gain was driven mainly by recall (+73%) with no loss of precision — the augmentation reduced missed detections without inflating false alarms, a desirable property for a screening application. Per class, TP counts rose and FP counts fell for LE;ER, VG;MT, and LR;DA. LR;DA improved from TP = 0 to TP = 2, though with only six ground-truth instances this comparison carries limited statistical weight.
+The performance gain (+46% test mAP, +67% validation mAP) was driven mainly by recall (+73%) on the validation set, with no loss of precision — the augmentation reduced missed detections without inflating false alarms, a desirable property for a screening application. On the test set both precision (+63%) and recall (+49%) improved (§4.1), supporting that the effect is not specific to the validation set. Per class, TP counts rose and FP counts fell for LE;ER, VG;MT, and LR;DA. LR;DA improved from TP = 0 to TP = 2, though with only six ground-truth instances this comparison carries limited statistical weight.
 
 ### 5.2 Implications of class imbalance
 
@@ -299,8 +299,8 @@ For the screening use case, recall (currently 0.49) is the metric that matters m
 
 This study built a reproducible pipeline from public drone inspection images to span-wise blade risk scores and established the following:
 
-1. Pyramid patch augmentation substantially improves detection without any architectural change (validation mAP@0.5 +67%, driven by recall); the final held-out test performance is five-class mAP@0.5 = 0.56.
-2. Four of five damage classes reach AP@0.5 of 0.56–0.78, but the structurally most critical class, leading-edge cracks, is entirely undetectable; systematic diagnosis attributes this to class imbalance (1.2% of training patches).
+1. Pyramid patch augmentation substantially improves detection without any architectural change (held-out test mAP@0.5 from 0.38 to 0.56, +46%; on the validation set +67%, recall-driven, while on the test set both precision and recall improved).
+2. Four of five damage classes reach AP@0.5 of 0.56–0.78, but the structurally most critical class, leading-edge cracks, is entirely undetectable; systematic diagnosis identifies class imbalance (1.2% of training patches) as the most supported explanation, with confirmation through class-balancing interventions left to future work.
 3. Span-wise risk scores reproduce the ranking expected from physics and field experience (tip > mid > root), preserved in four of the six substantive sensitivity scenarios.
 4. Scaling up the model does not help, confirming that the bottleneck is the data, not model capacity.
 
