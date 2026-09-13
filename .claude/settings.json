@@ -1,0 +1,93 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(/opt/anaconda3/bin/python:*)",
+      "Bash(/opt/anaconda3/bin/python3:*)",
+      "Bash(conda run:*)",
+      "Bash(conda info:*)",
+      "Bash(conda install:*)",
+      "Bash(conda create:*)",
+      "Bash(uv venv:*)",
+      "Bash(uv pip install:*)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(pip show:*)",
+      "Bash(jupyter nbconvert:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(open:*)",
+      "Bash(rg:*)",
+      "Bash(wc:*)",
+      "Bash(jq:*)",
+      "Bash(awk:*)",
+      "Bash(iconv:*)",
+      "Bash(bash -n:*)",
+      "Bash(zsh -n:*)",
+      "Bash(node --check:*)",
+      "Bash(pdfinfo:*)",
+      "Bash(pdftotext:*)",
+      "Bash(pdftoppm:*)",
+      "Bash(pdfimages:*)",
+      "Bash(pdffonts:*)",
+      "Bash(qpdf:*)",
+      "Bash(tesseract:*)",
+      "Bash(unzip:*)",
+      "Bash(unzip -l:*)",
+      "Bash(sips:*)",
+      "Bash(mdfind:*)",
+      "Bash(mdls:*)",
+      "Bash(sysctl -n:*)",
+      "Bash(system_profiler:*)",
+      "Bash(codex --version)",
+      "Read(//private/tmp/claude-501/**)",
+      "Read(//opt/anaconda3/**)",
+      "Bash(sed -n:*)",
+      "Bash(cut:*)",
+      "Bash(tr:*)",
+      "Bash(printf:*)",
+      "Bash(sort:*)",
+      "Bash(uniq:*)",
+      "Bash(sleep:*)",
+      "Bash(file:*)",
+      "Bash(realpath:*)",
+      "Bash(basename:*)",
+      "Bash(dirname:*)",
+      "Bash(date:*)",
+      "Bash(column:*)",
+      "Bash(paste:*)",
+      "Bash(comm:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start-memory-check.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-first-person.py",
+            "timeout": 15,
+            "statusMessage": "一人称チェック中"
+          }
+        ]
+      }
+    ]
+  }
+}

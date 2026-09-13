@@ -1,6 +1,6 @@
 # AGENTS.md（ブレード劣化予測研究）
 
-このファイルは **ブレード劣化予測研究フォルダで Codex CLI を使う際の指示書** です。研究の方針本体は `docs/paper_plan.md` を正としてください。
+このファイルは **ブレード劣化予測研究フォルダで Codex CLI を使う際の指示書** です。研究の方針本体は `docs/paper_plan.md` を正としてください。Claude Code 向けの指示書は同階層の `CLAUDE.md`（2026-09-04 新設）。Role・Proposal・Neutrality・参考文献ルールは本ファイルと共通です。本ファイルに無い規範（事実精度4原則 FRP・相関知見の用途区別・効果量の二面提示・守秘区分A〜D・監査記録 `tools/reference_audit/`）は **CLAUDE.md の当該節を準用**してください。レビュー時は特に「主張の強さが Proposal Policy の段階を超えていないか」「平均差に散らばりが併記されているか」を見ます。
 
 ## Communication Style（必須・例外なし）
 - **口調は必ずです・ます調で統一する**
