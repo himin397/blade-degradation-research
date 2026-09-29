@@ -29,6 +29,8 @@ echo "OPENAI_API_KEY length: ${#OPENAI_API_KEY}"   # 0 であること（API課�
 
 出力先ディレクトリをレビュー対象プロジェクト直下に作成します：`<対象プロジェクト>/docs/codex/`（なければ作成）。既存の `codex-NN-*.md` を確認して次の連番 NN を決めます。
 
+匿名化した複製を渡す場合は、漏れ検査の検査語に日本語表記のほかローマ字・略称・大文字小文字の違いを入れ、本文だけでなくコード内の識別子（保存キー・クラス名・ファイル名・コメント・属性値）も対象にします。符号名が本物の原稿へ逆流していないかも後で検査します（2026-09-29 追加）。
+
 ### 1. レンズ（観点）の選定
 
 デフォルト3本。対象に応じて追加・差し替えます：
@@ -59,6 +61,7 @@ echo "OPENAI_API_KEY length: ${#OPENAI_API_KEY}"   # 0 であること（API課�
 ```bash
 codex exec \
   --sandbox read-only \
+  -c model_reasoning_effort="xhigh" \
   --skip-git-repo-check \
   -C "/abs/path/to/target-repo" \
   --output-last-message "/abs/path/to/target-repo/docs/codex/codex-NN-<lens>.md" \
@@ -70,6 +73,7 @@ codex exec \
 - フラグはプロンプトより前に置く
 - パスはすべて絶対パス（相対パスだと出力が迷子になる）
 - `< /dev/null` で stdin を閉じる（ハング防止）
+- effort（推論の深さ）を必ず明示する（2026-09-29）。艦隊レビューは重要な変更で発動するので既定は `xhigh`。明示依頼で中身が通常のレビューなら `high`。利用枠が厳しい時も、重要な案件では effort を下げず並列数を減らす（下げる判断は CLAUDE.md の effort 基準に反するため、利用者に相談する）。指定が無いとグローバルフック `codex-effort.py` が止める
 - 完了判定は **exit code**。出力ファイルの存在確認で判定しない（書き込み途中がありうる）
 
 ### 4. 回収・統合
@@ -91,6 +95,7 @@ codex exec \
 # セッション ID は ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl のファイル名末尾 UUID
 codex exec \
   --sandbox read-only \
+  -c model_reasoning_effort="xhigh" \
   --output-last-message "/abs/path/docs/codex/codex-NN-<lens>-round2.md" \
   resume <SESSION_ID> \
   "REV-XXX-001 と 003 は修正した。差分を再判定せよ。" < /dev/null 2>/dev/null

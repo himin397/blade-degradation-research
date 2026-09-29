@@ -87,6 +87,16 @@
             "statusMessage": "一人称チェック中"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-evidence-claims.py",
+            "timeout": 15,
+            "statusMessage": "証拠の量チェック中"
+          }
+        ]
       }
     ]
   }
