@@ -409,3 +409,4 @@ Penmanshiel データで風速 vs DEL の回帰を自分で実行 → R² を確
 - Paper ドラフト：`paper1_blade_damage_detection.md`、`paper2_fatigue_load_estimation.md`、`paper3_integration_pipeline.md`
 - Phase 2 用語集：`phase2_glossary.md`
 - 全体ロードマップ：`research_roadmap.md`
+- 研究で使う統計手法の位置づけ（他分野との比較・2026-10-15）：`statistics_field_comparison.md`
