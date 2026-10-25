@@ -61,7 +61,7 @@ echo "OPENAI_API_KEY length: ${#OPENAI_API_KEY}"   # 0 であること（API課�
 ```bash
 codex exec \
   --sandbox read-only \
-  -c model_reasoning_effort="xhigh" \
+  -c model_reasoning_effort="high" \
   --skip-git-repo-check \
   -C "/abs/path/to/target-repo" \
   --output-last-message "/abs/path/to/target-repo/docs/codex/codex-NN-<lens>.md" \
@@ -73,7 +73,7 @@ codex exec \
 - フラグはプロンプトより前に置く
 - パスはすべて絶対パス（相対パスだと出力が迷子になる）
 - `< /dev/null` で stdin を閉じる（ハング防止）
-- effort（推論の深さ）を必ず明示する（2026-09-29）。艦隊レビューは重要な変更で発動するので既定は `xhigh`。明示依頼で中身が通常のレビューなら `high`。利用枠が厳しい時も、重要な案件では effort を下げず並列数を減らす（下げる判断は CLAUDE.md の effort 基準に反するため、利用者に相談する）。指定が無いとグローバルフック `codex-effort.py` が止める
+- effort（推論の深さ）を必ず明示する（2026-09-29）。**どの場合も `high`**（2026-10-17・Codex の利用が多くなったための利用者の指示。xhigh は使わない）。利用枠が厳しい時は並列数を減らす。指定が無いとグローバルフック `codex-effort.py` が止める
 - 完了判定は **exit code**。出力ファイルの存在確認で判定しない（書き込み途中がありうる）
 
 ### 4. 回収・統合
@@ -95,7 +95,7 @@ codex exec \
 # セッション ID は ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl のファイル名末尾 UUID
 codex exec \
   --sandbox read-only \
-  -c model_reasoning_effort="xhigh" \
+  -c model_reasoning_effort="high" \
   --output-last-message "/abs/path/docs/codex/codex-NN-<lens>-round2.md" \
   resume <SESSION_ID> \
   "REV-XXX-001 と 003 は修正した。差分を再判定せよ。" < /dev/null 2>/dev/null
