@@ -34,3 +34,6 @@ docs/references/**/*.PDF
 # 論文PDF（著作権・容量のためGit管理対象外）
 docs/references/
 data/PDF/
+
+# 手番台帳（himinさん への質問の記録。親 claude1 と同じ扱い。2026-10-31 親から追加）
+docs/手番台帳.jsonl
